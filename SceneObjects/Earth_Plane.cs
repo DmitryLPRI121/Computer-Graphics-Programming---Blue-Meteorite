@@ -1,8 +1,9 @@
-﻿using Tao.OpenGl;
+﻿// SceneObjects/Earth_Plane.cs
+using Tao.OpenGl;
 
 namespace Computer_Graphics_Programming___Blue_Meteorite
 {
-    public class Plane
+    public class Earth_Plane
     {
         public void Render()
         {

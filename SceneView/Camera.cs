@@ -1,4 +1,5 @@
-﻿using System;
+﻿// SceneView/Camera.cs
+using System;
 using System.Windows.Forms;
 using Tao.OpenGl;
 

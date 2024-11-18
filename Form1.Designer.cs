@@ -25,13 +25,13 @@ namespace Computer_Graphics_Programming___Blue_Meteorite
             this.Exit = new System.Windows.Forms.ToolStripMenuItem();
             this.settingsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.infoMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.sceneView = new Tao.Platform.Windows.SimpleOpenGlControl();
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.XCoordinateStatus = new System.Windows.Forms.ToolStripStatusLabel();
             this.YCoordinateStatus = new System.Windows.Forms.ToolStripStatusLabel();
             this.ZCoordinateStatus = new System.Windows.Forms.ToolStripStatusLabel();
             this.actionStrip = new System.Windows.Forms.ToolStrip();
             this.effectsStrip = new System.Windows.Forms.ToolStrip();
+            this.sceneView = new Tao.Platform.Windows.SimpleOpenGlControl();
             this.menuStrip1.SuspendLayout();
             this.statusStrip1.SuspendLayout();
             this.SuspendLayout();
@@ -75,26 +75,6 @@ namespace Computer_Graphics_Programming___Blue_Meteorite
             this.infoMenuItem.Size = new System.Drawing.Size(65, 20);
             this.infoMenuItem.Text = "Справка";
             // 
-            // sceneView
-            // 
-            this.sceneView.AccumBits = ((byte)(0));
-            this.sceneView.AutoCheckErrors = false;
-            this.sceneView.AutoFinish = false;
-            this.sceneView.AutoMakeCurrent = true;
-            this.sceneView.AutoSwapBuffers = true;
-            this.sceneView.BackColor = System.Drawing.Color.Black;
-            this.sceneView.ColorBits = ((byte)(32));
-            this.sceneView.DepthBits = ((byte)(16));
-            this.sceneView.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.sceneView.Location = new System.Drawing.Point(0, 24);
-            this.sceneView.Name = "sceneView";
-            this.sceneView.Size = new System.Drawing.Size(800, 426);
-            this.sceneView.StencilBits = ((byte)(0));
-            this.sceneView.TabIndex = 1;
-            this.sceneView.MouseDown += new System.Windows.Forms.MouseEventHandler(this.Form1_MouseDown);
-            this.sceneView.MouseMove += new System.Windows.Forms.MouseEventHandler(this.Form1_MouseMove);
-            this.sceneView.MouseUp += new System.Windows.Forms.MouseEventHandler(this.Form1_MouseUp);
-            // 
             // statusStrip1
             // 
             this.statusStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
@@ -137,26 +117,47 @@ namespace Computer_Graphics_Programming___Blue_Meteorite
             // effectsStrip
             // 
             this.effectsStrip.Dock = System.Windows.Forms.DockStyle.Right;
-            this.effectsStrip.Location = new System.Drawing.Point(768, 24);
+            this.effectsStrip.Location = new System.Drawing.Point(774, 24);
             this.effectsStrip.Name = "effectsStrip";
-            this.effectsStrip.Size = new System.Drawing.Size(32, 404);
+            this.effectsStrip.Size = new System.Drawing.Size(26, 404);
             this.effectsStrip.TabIndex = 7;
             this.effectsStrip.Text = "toolStrip1";
+            // 
+            // sceneView
+            // 
+            this.sceneView.AccumBits = ((byte)(0));
+            this.sceneView.AutoCheckErrors = false;
+            this.sceneView.AutoFinish = false;
+            this.sceneView.AutoMakeCurrent = true;
+            this.sceneView.AutoSwapBuffers = true;
+            this.sceneView.BackColor = System.Drawing.Color.Black;
+            this.sceneView.ColorBits = ((byte)(32));
+            this.sceneView.DepthBits = ((byte)(16));
+            this.sceneView.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.sceneView.Location = new System.Drawing.Point(26, 24);
+            this.sceneView.Name = "sceneView";
+            this.sceneView.Size = new System.Drawing.Size(748, 404);
+            this.sceneView.StencilBits = ((byte)(0));
+            this.sceneView.TabIndex = 8;
+            this.sceneView.MouseDown += new System.Windows.Forms.MouseEventHandler(this.sceneView_MouseDown);
+            this.sceneView.MouseMove += new System.Windows.Forms.MouseEventHandler(this.sceneView_MouseMove);
+            this.sceneView.MouseUp += new System.Windows.Forms.MouseEventHandler(this.sceneView_MouseUp);
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(800, 450);
+            this.Controls.Add(this.sceneView);
             this.Controls.Add(this.effectsStrip);
             this.Controls.Add(this.actionStrip);
             this.Controls.Add(this.statusStrip1);
-            this.Controls.Add(this.sceneView);
             this.Controls.Add(this.menuStrip1);
             this.MainMenuStrip = this.menuStrip1;
             this.Name = "Form1";
             this.Text = "Сцена - Голубой метеорит";
             this.Load += new System.EventHandler(this.Form1_Load);
+            this.ResizeEnd += new System.EventHandler(this.Form1_Resize);
             this.menuStrip1.ResumeLayout(false);
             this.menuStrip1.PerformLayout();
             this.statusStrip1.ResumeLayout(false);
@@ -173,13 +174,13 @@ namespace Computer_Graphics_Programming___Blue_Meteorite
         private System.Windows.Forms.ToolStripMenuItem Exit;
         private System.Windows.Forms.ToolStripMenuItem settingsMenuItem;
         private System.Windows.Forms.ToolStripMenuItem infoMenuItem;
-        private SimpleOpenGlControl sceneView;
         private System.Windows.Forms.StatusStrip statusStrip1;
         private System.Windows.Forms.ToolStripStatusLabel XCoordinateStatus;
         private System.Windows.Forms.ToolStripStatusLabel YCoordinateStatus;
         private System.Windows.Forms.ToolStripStatusLabel ZCoordinateStatus;
         private System.Windows.Forms.ToolStrip actionStrip;
         private System.Windows.Forms.ToolStrip effectsStrip;
+        private SimpleOpenGlControl sceneView;
     }
 }
 

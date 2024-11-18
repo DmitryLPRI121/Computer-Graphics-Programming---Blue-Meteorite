@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿// SceneView/SceneRenderer.cs
 using System.Windows.Forms;
 using Tao.OpenGl;
 using Tao.Platform.Windows;
@@ -13,7 +9,7 @@ namespace Computer_Graphics_Programming___Blue_Meteorite
     {
         private readonly SimpleOpenGlControl glControl;
         private Camera camera;
-        private Plane plane;
+        private Earth_Plane plane;
         private InputHandler inputHandler;
 
         public SceneRenderer(SimpleOpenGlControl glControl)
@@ -21,7 +17,7 @@ namespace Computer_Graphics_Programming___Blue_Meteorite
             this.glControl = glControl;
             camera = new Camera();
             inputHandler = new InputHandler(camera); // создаем InputHandler
-            plane = new Plane();
+            plane = new Earth_Plane();
         }
 
         public void Initialize()

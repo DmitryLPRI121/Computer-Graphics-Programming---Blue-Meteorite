@@ -19,27 +19,27 @@ namespace Computer_Graphics_Programming___Blue_Meteorite
             sceneRenderer.Initialize();
         }
 
-        private void Form1_KeyDown(object sender, KeyEventArgs e)
+        private void sceneView_KeyDown(object sender, KeyEventArgs e)
         {
             sceneRenderer.HandleKeyDown(e);
         }
 
-        private void Form1_KeyUp(object sender, KeyEventArgs e)
+        private void sceneView_KeyUp(object sender, KeyEventArgs e)
         {
             sceneRenderer.HandleKeyUp(e);
         }
 
-        private void Form1_MouseMove(object sender, MouseEventArgs e)
+        private void sceneView_MouseMove(object sender, MouseEventArgs e)
         {
             sceneRenderer.HandleMouseMove(e);
         }
 
-        private void Form1_MouseDown(object sender, MouseEventArgs e)
+        private void sceneView_MouseDown(object sender, MouseEventArgs e)
         {
             sceneRenderer.HandleMouseDown(e);
         }
 
-        private void Form1_MouseUp(object sender, MouseEventArgs e)
+        private void sceneView_MouseUp(object sender, MouseEventArgs e)
         {
             sceneRenderer.HandleMouseUp(e);
         }
@@ -53,16 +53,6 @@ namespace Computer_Graphics_Programming___Blue_Meteorite
         private void Exit_Click(object sender, EventArgs e)
         {
             Application.Exit();
-        }
-
-        private void toolStripStatusLabel1_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void statusStrip1_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
-        {
-
         }
     }
 }
