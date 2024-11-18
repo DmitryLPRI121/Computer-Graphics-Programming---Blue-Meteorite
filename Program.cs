@@ -1,4 +1,5 @@
-﻿using System;
+﻿// Program.cs
+using System;
 using System.Windows.Forms;
 
 namespace Computer_Graphics_Programming___Blue_Meteorite
