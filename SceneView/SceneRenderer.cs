@@ -37,14 +37,18 @@ namespace Computer_Graphics_Programming___Blue_Meteorite
 
         private void RenderSceneObjects()
         {
-            // Plane
-            CreateObject.Plane(5, 5).SetScale(2);
-
             // Cube
-            CreateObject.Cube(2).SetPosition(0, 0, 0).SetRotation(0f, 90f, 45f);
+            Object3D cube = CreateObject.Cube(1.0f);
+            cube.SetPosition(0.0f, 0.0f, -5.0f)
+                .SetRotation(30.0f, 45.0f, 0.0f)
+                .SetScale(1.5f);
 
             // Sphere
-            CreateObject.Sphere(5f, 32, 16).SetPosition(0, 0, 0);
+            Object3D sphere = CreateObject.Sphere(0.5f, 20, 20);
+            sphere.SetPosition(2.0f, 0.0f, -5.0f)
+                  .SetScale(1.2f);
+
+            cube.ChangeScale(1.0f);
         }
 
         public void HandleResize(int width, int height)

@@ -16,6 +16,14 @@ namespace Computer_Graphics_Programming___Blue_Meteorite
             return this;
         }
 
+        public Transform ChangePosition(float x, float y, float z)
+        {
+            Position[0] += x;
+            Position[1] += y;
+            Position[2] += z;
+            return this;
+        }
+
         public Transform SetRotation(float x, float y, float z)
         {
             Rotation[0] = x;
@@ -24,9 +32,23 @@ namespace Computer_Graphics_Programming___Blue_Meteorite
             return this;
         }
 
+        public Transform ChangeRotation(float x, float y, float z)
+        {
+            Rotation[0] += x;
+            Rotation[1] += y;
+            Rotation[2] += z;
+            return this;
+        }
+
         public Transform SetScale(float scale)
         {
             Scale = scale;
+            return this;
+        }
+
+        public Transform ChangeScale(float scale)
+        {
+            Scale += scale;
             return this;
         }
 
@@ -42,43 +64,47 @@ namespace Computer_Graphics_Programming___Blue_Meteorite
 
     public class Object3D
     {
-        private readonly Transform _transform = new Transform();
+        public Transform Transform { get; } = new Transform();
 
         public Object3D SetPosition(float x, float y, float z)
         {
-            _transform.SetPosition(x, y, z);
+            Transform.SetPosition(x, y, z);
+            return this;
+        }
+
+        public Object3D ChangePosition(float x, float y, float z)
+        {
+            Transform.ChangePosition(x, y, z);
             return this;
         }
 
         public Object3D SetRotation(float x, float y, float z)
         {
-            _transform.SetRotation(x, y, z);
+            Transform.SetRotation(x, y, z);
+            return this;
+        }
+
+        public Object3D ChangeRotation(float x, float y, float z)
+        {
+            Transform.ChangeRotation(x, y, z);
             return this;
         }
 
         public Object3D SetScale(float scale)
         {
-            _transform.SetScale(scale);
+            Transform.SetScale(scale);
             return this;
         }
 
-        public void DrawPlane(float width, float height)
+        public Object3D ChangeScale(float scale)
         {
-            _transform.ApplyTransformations();
-
-            Gl.glBegin(Gl.GL_QUADS);
-
-            Gl.glVertex3f(-width / 2, 0, -height / 2);
-            Gl.glVertex3f(width / 2, 0, -height / 2);
-            Gl.glVertex3f(width / 2, 0, height / 2);
-            Gl.glVertex3f(-width / 2, 0, height / 2);
-
-            Gl.glEnd();
+            Transform.ChangeScale(scale);
+            return this;
         }
 
-        public void DrawCube(float size)
+        public void RenderCube(float size)
         {
-            _transform.ApplyTransformations();
+            Transform.ApplyTransformations();
 
             float half = size / 2;
 
@@ -123,9 +149,9 @@ namespace Computer_Graphics_Programming___Blue_Meteorite
             Gl.glEnd();
         }
 
-        public void DrawSphere(float radius, int slices, int stacks)
+        public void RenderSphere(float radius, int slices, int stacks)
         {
-            _transform.ApplyTransformations();
+            Transform.ApplyTransformations();
 
             Glu.GLUquadric sphere = Glu.gluNewQuadric();
             Glu.gluQuadricDrawStyle(sphere, Glu.GLU_FILL);
@@ -134,6 +160,24 @@ namespace Computer_Graphics_Programming___Blue_Meteorite
 
             Glu.gluDeleteQuadric(sphere);
         }
+
+        public void RenderCustom(float[][] vertices, int[][] faces)
+        {
+            Transform.ApplyTransformations();
+
+            Gl.glBegin(Gl.GL_TRIANGLES);
+
+            foreach (var face in faces)
+            {
+                foreach (var index in face)
+                {
+                    float[] vertex = vertices[index];
+                    Gl.glVertex3f(vertex[0], vertex[1], vertex[2]);
+                }
+            }
+
+            Gl.glEnd();
+        }
     }
 
     public static class CreateObject
@@ -141,21 +185,21 @@ namespace Computer_Graphics_Programming___Blue_Meteorite
         public static Object3D Cube(float size)
         {
             var obj = new Object3D();
-            obj.DrawCube(size);
-            return obj;
-        }
-
-        public static Object3D Plane(float width, float height)
-        {
-            var obj = new Object3D();
-            obj.DrawPlane(width, height);
+            obj.RenderCube(size);
             return obj;
         }
 
         public static Object3D Sphere(float radius, int slices, int stacks)
         {
             var obj = new Object3D();
-            obj.DrawSphere(radius, slices, stacks);
+            obj.RenderSphere(radius, slices, stacks);
+            return obj;
+        }
+
+        public static Object3D Custom(float[][] vertices, int[][] faces)
+        {
+            var obj = new Object3D();
+            obj.RenderCustom(vertices, faces);
             return obj;
         }
     }
