@@ -9,15 +9,13 @@ namespace Computer_Graphics_Programming___Blue_Meteorite
     {
         private readonly SimpleOpenGlControl glControl;
         private Camera camera;
-        private Earth_Plane plane;
         private InputHandler inputHandler;
 
         public SceneRenderer(SimpleOpenGlControl glControl)
         {
             this.glControl = glControl;
             camera = new Camera();
-            inputHandler = new InputHandler(camera); // создаем InputHandler
-            plane = new Earth_Plane();
+            inputHandler = new InputHandler(camera);
         }
 
         public void Initialize()
@@ -30,8 +28,23 @@ namespace Computer_Graphics_Programming___Blue_Meteorite
         {
             Gl.glClear(Gl.GL_COLOR_BUFFER_BIT | Gl.GL_DEPTH_BUFFER_BIT);
             camera.Apply();
-            plane.Render();
+
+            // The scene objects render
+            RenderSceneObjects();
+
             glControl.Refresh();
+        }
+
+        private void RenderSceneObjects()
+        {
+            // Plane
+            CreateObject.Plane(5, 5).SetScale(2);
+
+            // Cube
+            CreateObject.Cube(2).SetPosition(0, 0, 0).SetRotation(0f, 90f, 45f);
+
+            // Sphere
+            CreateObject.Sphere(5f, 32, 16).SetPosition(0, 0, 0);
         }
 
         public void HandleResize(int width, int height)

@@ -24,7 +24,7 @@ namespace Computer_Graphics_Programming___Blue_Meteorite
             this.sceneMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.Exit = new System.Windows.Forms.ToolStripMenuItem();
             this.settingsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.infoMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.helpDialog = new System.Windows.Forms.ToolStripMenuItem();
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.XCoordinateStatus = new System.Windows.Forms.ToolStripStatusLabel();
             this.YCoordinateStatus = new System.Windows.Forms.ToolStripStatusLabel();
@@ -41,7 +41,7 @@ namespace Computer_Graphics_Programming___Blue_Meteorite
             this.menuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.sceneMenuItem,
             this.settingsMenuItem,
-            this.infoMenuItem});
+            this.helpDialog});
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
             this.menuStrip1.Size = new System.Drawing.Size(800, 24);
@@ -69,11 +69,12 @@ namespace Computer_Graphics_Programming___Blue_Meteorite
             this.settingsMenuItem.Size = new System.Drawing.Size(79, 20);
             this.settingsMenuItem.Text = "Настройки";
             // 
-            // infoMenuItem
+            // helpDialog
             // 
-            this.infoMenuItem.Name = "infoMenuItem";
-            this.infoMenuItem.Size = new System.Drawing.Size(65, 20);
-            this.infoMenuItem.Text = "Справка";
+            this.helpDialog.Name = "helpDialog";
+            this.helpDialog.Size = new System.Drawing.Size(65, 20);
+            this.helpDialog.Text = "Справка";
+            this.helpDialog.Click += new System.EventHandler(this.helpDialog_Click);
             // 
             // statusStrip1
             // 
@@ -173,7 +174,7 @@ namespace Computer_Graphics_Programming___Blue_Meteorite
         private System.Windows.Forms.ToolStripMenuItem sceneMenuItem;
         private System.Windows.Forms.ToolStripMenuItem Exit;
         private System.Windows.Forms.ToolStripMenuItem settingsMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem infoMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem helpDialog;
         private System.Windows.Forms.StatusStrip statusStrip1;
         private System.Windows.Forms.ToolStripStatusLabel XCoordinateStatus;
         private System.Windows.Forms.ToolStripStatusLabel YCoordinateStatus;

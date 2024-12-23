@@ -54,5 +54,10 @@ namespace Computer_Graphics_Programming___Blue_Meteorite
         {
             Application.Exit();
         }
+
+        private void helpDialog_Click(object sender, EventArgs e)
+        {
+            HelpDialog.ShowHelp();
+        }
     }
 }
