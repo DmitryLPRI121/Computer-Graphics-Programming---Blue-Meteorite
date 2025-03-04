@@ -22,7 +22,12 @@
             выходToolStripMenuItem = new ToolStripMenuItem();
             настройкиToolStripMenuItem = new ToolStripMenuItem();
             справкаToolStripMenuItem = new ToolStripMenuItem();
+            statusStrip1 = new StatusStrip();
+            cameraPositionX = new ToolStripStatusLabel();
+            cameraPositionY = new ToolStripStatusLabel();
+            cameraPositionZ = new ToolStripStatusLabel();
             menuStrip1.SuspendLayout();
+            statusStrip1.SuspendLayout();
             SuspendLayout();
             // 
             // menuStrip1
@@ -60,17 +65,47 @@
             справкаToolStripMenuItem.Size = new Size(65, 20);
             справкаToolStripMenuItem.Text = "Справка";
             // 
+            // statusStrip1
+            // 
+            statusStrip1.Items.AddRange(new ToolStripItem[] { cameraPositionX, cameraPositionY, cameraPositionZ });
+            statusStrip1.Location = new Point(0, 428);
+            statusStrip1.Name = "statusStrip1";
+            statusStrip1.Size = new Size(800, 22);
+            statusStrip1.TabIndex = 1;
+            statusStrip1.Text = "statusStrip1";
+            // 
+            // cameraPositionX
+            // 
+            cameraPositionX.Name = "cameraPositionX";
+            cameraPositionX.Size = new Size(16, 17);
+            cameraPositionX.Text = "x:";
+            // 
+            // cameraPositionY
+            // 
+            cameraPositionY.Name = "cameraPositionY";
+            cameraPositionY.Size = new Size(16, 17);
+            cameraPositionY.Text = "y:";
+            // 
+            // cameraPositionZ
+            // 
+            cameraPositionZ.Name = "cameraPositionZ";
+            cameraPositionZ.Size = new Size(15, 17);
+            cameraPositionZ.Text = "z:";
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(800, 450);
+            Controls.Add(statusStrip1);
             Controls.Add(menuStrip1);
             MainMenuStrip = menuStrip1;
             Name = "Form1";
             Text = "Сцена - Голубой метеорит";
             menuStrip1.ResumeLayout(false);
             menuStrip1.PerformLayout();
+            statusStrip1.ResumeLayout(false);
+            statusStrip1.PerformLayout();
             ResumeLayout(false);
             PerformLayout();
         }
@@ -82,5 +117,9 @@
         private ToolStripMenuItem выходToolStripMenuItem;
         private ToolStripMenuItem настройкиToolStripMenuItem;
         private ToolStripMenuItem справкаToolStripMenuItem;
+        private StatusStrip statusStrip1;
+        private ToolStripStatusLabel cameraPositionX;
+        private ToolStripStatusLabel cameraPositionY;
+        private ToolStripStatusLabel cameraPositionZ;
     }
 }
