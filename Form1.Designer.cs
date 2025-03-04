@@ -46,7 +46,7 @@
             выходToolStripMenuItem.Name = "выходToolStripMenuItem";
             выходToolStripMenuItem.Size = new Size(180, 22);
             выходToolStripMenuItem.Text = "Выход";
-            выходToolStripMenuItem.Click += выходToolStripMenuItem_Click_1;
+            выходToolStripMenuItem.Click += выходToolStripMenuItem_Click;
             // 
             // настройкиToolStripMenuItem
             // 

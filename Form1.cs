@@ -11,10 +11,5 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         {
             Application.Exit();
         }
-
-        private void выходToolStripMenuItem_Click_1(object sender, EventArgs e)
-        {
-            Application.Exit();
-        }
     }
 }
