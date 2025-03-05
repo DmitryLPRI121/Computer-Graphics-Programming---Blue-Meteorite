@@ -26,6 +26,7 @@
             cameraPositionX = new ToolStripStatusLabel();
             cameraPositionY = new ToolStripStatusLabel();
             cameraPositionZ = new ToolStripStatusLabel();
+            glControl1 = new OpenTK.GLControl.GLControl();
             menuStrip1.SuspendLayout();
             statusStrip1.SuspendLayout();
             SuspendLayout();
@@ -49,7 +50,7 @@
             // выходToolStripMenuItem
             // 
             выходToolStripMenuItem.Name = "выходToolStripMenuItem";
-            выходToolStripMenuItem.Size = new Size(180, 22);
+            выходToolStripMenuItem.Size = new Size(109, 22);
             выходToolStripMenuItem.Text = "Выход";
             выходToolStripMenuItem.Click += выходToolStripMenuItem_Click;
             // 
@@ -92,11 +93,26 @@
             cameraPositionZ.Size = new Size(15, 17);
             cameraPositionZ.Text = "z:";
             // 
+            // glControl1
+            // 
+            glControl1.API = OpenTK.Windowing.Common.ContextAPI.OpenGL;
+            glControl1.APIVersion = new Version(3, 3, 0, 0);
+            glControl1.Dock = DockStyle.Fill;
+            glControl1.Flags = OpenTK.Windowing.Common.ContextFlags.Default;
+            glControl1.IsEventDriven = true;
+            glControl1.Location = new Point(0, 24);
+            glControl1.Name = "glControl1";
+            glControl1.Profile = OpenTK.Windowing.Common.ContextProfile.Core;
+            glControl1.SharedContext = null;
+            glControl1.Size = new Size(800, 404);
+            glControl1.TabIndex = 2;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(800, 450);
+            Controls.Add(glControl1);
             Controls.Add(statusStrip1);
             Controls.Add(menuStrip1);
             MainMenuStrip = menuStrip1;
@@ -121,5 +137,6 @@
         private ToolStripStatusLabel cameraPositionX;
         private ToolStripStatusLabel cameraPositionY;
         private ToolStripStatusLabel cameraPositionZ;
+        private OpenTK.GLControl.GLControl glControl1;
     }
 }
