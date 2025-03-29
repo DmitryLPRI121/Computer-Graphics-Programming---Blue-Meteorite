@@ -7,15 +7,16 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
 {
     public partial class Form1 : Form
     {
-        private SceneState sceneState;
-        private Scene scene;
+        private SceneObjects sceneState;
+        private SceneSettings scene;
         private AnimationControlForm animationForm;
         private ParticleSystemControlForm particleForm;
         private LightControlForm lightForm;
         private ObjectTransformForm transformForm;
         private SceneSettingsForm skyboxForm;
+        private CameraControlForm cameraForm;
 
-        public Form1(SceneState state, Scene scene)
+        public Form1(SceneObjects state, SceneSettings scene)
         {
             this.sceneState = state;
             this.scene = scene;
@@ -60,8 +61,15 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                 Size = new System.Drawing.Size(200, 30)
             };
 
+            Button cameraBtn = new Button
+            {
+                Text = "Camera Control",
+                Location = new System.Drawing.Point(10, 210),
+                Size = new System.Drawing.Size(200, 30)
+            };
+
             // Add controls to form
-            this.Controls.AddRange(new Control[] { animationBtn, particleBtn, lightBtn, transformBtn, skyboxBtn });
+            this.Controls.AddRange(new Control[] { animationBtn, particleBtn, lightBtn, transformBtn, skyboxBtn, cameraBtn });
 
             // Add event handlers
             animationBtn.Click += (s, e) => OpenForm(ref animationForm, () => new AnimationControlForm(sceneState));
@@ -69,6 +77,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             lightBtn.Click += (s, e) => OpenForm(ref lightForm, () => new LightControlForm(sceneState));
             transformBtn.Click += (s, e) => OpenForm(ref transformForm, () => new ObjectTransformForm(sceneState));
             skyboxBtn.Click += (s, e) => OpenForm(ref skyboxForm, () => new SceneSettingsForm(scene, sceneState));
+            cameraBtn.Click += (s, e) => OpenForm(ref cameraForm, () => new CameraControlForm(scene.camera, scene.camera.SelfDynamic, sceneState));
 
             // Initialize all control forms
             animationForm = new AnimationControlForm(sceneState);
@@ -76,6 +85,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             lightForm = new LightControlForm(sceneState);
             transformForm = new ObjectTransformForm(sceneState);
             skyboxForm = new SceneSettingsForm(scene, sceneState);
+            cameraForm = new CameraControlForm(scene.camera, scene.camera.SelfDynamic, sceneState);
         }
 
         private void OpenForm<T>(ref T form, Func<T> createForm) where T : Form

@@ -12,6 +12,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         public Vector3 Scale { get; set; } = Vector3.One;
         public string Name { get; set; }
         public DynamicBody? SelfDynamic { get; set; }
+        public Vector3 Color { get; set; } = Vector3.One;
 
         public void AddChild(TransformableObject child)
         {
@@ -47,10 +48,11 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             // Вычисляем глобальную матрицу модели
             Matrix4 model = GetModelMatrix() * parentTransform;
 
-            // Передаем матрицу модели в шейдер
+            // Устанавливаем матрицы и параметры в шейдер
             shader.SetMatrix4("model", model);
+            shader.SetVector3("objectColor", Color);
 
-            // Отрисовываем текущий объект
+            // Рендерим объект
             Draw(shader);
 
             shader.SetInt("texture_diffuse1", 0);
@@ -58,7 +60,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             // Рендерим дочерние объекты
             foreach (var child in Children)
             {
-                child.Render(shader, model);  // Передаем текущую матрицу как родительскую для детей
+                child.Render(shader, model);
             }
         }
 

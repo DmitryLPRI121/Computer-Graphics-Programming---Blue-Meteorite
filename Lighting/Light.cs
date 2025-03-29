@@ -31,28 +31,43 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             // Инициализация шейдера и карты теней
             shadowShader = new Shader("shaders/shadow.vert", "shaders/shadow.frag");
             shadowMap = new ShadowMap(1024, 1024);
+
+            // Установка максимальных значений по умолчанию
+            Position = new Vector3(0, 5, 10);
+            LookAt = new Vector3(0, 0, 0);
+            Ambient = new Vector3(1.0f, 1.0f, 1.0f);  // Максимальное фоновое освещение
+            Diffuse = new Vector3(2.0f, 2.0f, 2.0f);  // Максимальное рассеянное освещение
+            Specular = new Vector3(1.0f, 1.0f, 1.0f); // Максимальное отраженное освещение
+
+            // Минимальные коэффициенты затухания для максимального освещения
+            ConstantAttenuation = 1.0f;
+            LinearAttenuation = 0.09f;
+            QuadraticAttenuation = 0.032f;
         }
 
         /// <summary>
         /// Устанавливает параметры света в основной шейдер.
         /// </summary>
-        public void SetLightUniforms(Shader shader)
+        public void SetLightUniforms(Shader shader, int index)
         {
-            shader.SetVector3("lightPos", Position);
-            shader.SetVector3("lightAmbient", Ambient);
-            shader.SetVector3("lightDiffuse", Diffuse);
-            shader.SetVector3("lightSpecular", Specular);
+            shader.SetVector3($"lightPos[{index}]", Position);
+            shader.SetVector3($"lightAmbient[{index}]", Ambient);
+            shader.SetVector3($"lightDiffuse[{index}]", Diffuse);
+            shader.SetVector3($"lightSpecular[{index}]", Specular);
 
             // Установка коэффициентов аттенюации
-            shader.SetFloat("constantAttenuation", ConstantAttenuation);
-            shader.SetFloat("linearAttenuation", LinearAttenuation);
-            shader.SetFloat("quadraticAttenuation", QuadraticAttenuation);
+            shader.SetFloat($"constantAttenuation[{index}]", ConstantAttenuation);
+            shader.SetFloat($"linearAttenuation[{index}]", LinearAttenuation);
+            shader.SetFloat($"quadraticAttenuation[{index}]", QuadraticAttenuation);
 
             // Передача параметров карты теней
-            shadowMap.SetShaderUniforms(shader);
+            if (index == 0) // Only set shadow map uniforms for the first light
+            {
+                shadowMap.SetShaderUniforms(shader);
+            }
         }
 
-        internal void ReCompute(Scene scene)
+        internal void ReCompute(SceneSettings scene)
         {
             RecomputeLightSpaceMatrix();
             RenderShadows(scene);
@@ -69,7 +84,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         /// <summary>
         /// Выполняет рендеринг теней.
         /// </summary>
-        public void RenderShadows(Scene scene)
+        public void RenderShadows(SceneSettings scene)
         {
             shadowShader.Use();
 

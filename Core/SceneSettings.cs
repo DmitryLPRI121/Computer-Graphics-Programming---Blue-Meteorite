@@ -6,65 +6,49 @@ using System.Diagnostics;
 
 namespace Computer_Graphics_Programming_Blue_Meteorite
 {
-    public class Scene : GameWindow
+    public class SceneSettings : GameWindow
     {
         private Shader shader;
         public Skybox skybox;
         public List<TransformableObject> sceneObjects = new List<TransformableObject>();
         public List<DynamicBody> physicalStates = new List<DynamicBody>();
 
-        private Camera camera;
-        Light light;
-        SceneState sceneState;
+        public Camera camera;
+        private List<Light> lights;
+        public GlobalLight globalLight;
+        SceneObjects sceneState;
 
         private Vector2 lastMousePosition;
         private bool firstMove = true;
 
-        public Scene(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings, SceneState ss)
+        public SceneSettings(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings, SceneObjects ss)
             : base(gameWindowSettings, nativeWindowSettings)
         {
             sceneState = ss;
-            camera = new Camera(new Vector3(0.0f, 0.0f, 3.0f), Vector3.UnitY);
+            camera = new Camera(new Vector3(0.0f, 2.0f, 3.0f), Vector3.UnitY);
 
             DynamicBody cameraDynamic = new DynamicBody(camera);
-            cameraDynamic.floor_y = 1;
+            cameraDynamic.floor_y = 3;
             camera.SelfDynamic = cameraDynamic;
 
             physicalStates.Add(cameraDynamic);
-            light = new Light();
+            lights = new List<Light>();
+            globalLight = new GlobalLight();
             
             // Инициализация настроек света
             if (sceneState.LightSettings != null)
             {
-                light.Position = sceneState.LightSettings.Position;
-                light.LookAt = sceneState.LightSettings.LookAt;
-                light.Ambient = Vector3.Multiply(new Vector3(sceneState.LightSettings.Color.R, sceneState.LightSettings.Color.G, sceneState.LightSettings.Color.B), sceneState.LightSettings.AmbientIntensity);
-                light.Diffuse = Vector3.Multiply(new Vector3(sceneState.LightSettings.Color.R, sceneState.LightSettings.Color.G, sceneState.LightSettings.Color.B), sceneState.LightSettings.DiffuseIntensity);
-                light.Specular = Vector3.Multiply(new Vector3(sceneState.LightSettings.Color.R, sceneState.LightSettings.Color.G, sceneState.LightSettings.Color.B), sceneState.LightSettings.SpecularIntensity);
-                light.SetAttenuation(sceneState.LightSettings.AttenuationA, sceneState.LightSettings.AttenuationB, sceneState.LightSettings.AttenuationC);
-            }
-            else
-            {
-                // Устанавливаем значения по умолчанию для света
-                sceneState.LightSettings = new LightSettings
+                foreach (var lightSettings in sceneState.LightSettings)
                 {
-                    Position = new Vector3(0, 5, 10),
-                    LookAt = new Vector3(0, 0, 0),
-                    AmbientIntensity = 1.0f,
-                    DiffuseIntensity = 2.0f,
-                    SpecularIntensity = 1.0f,
-                    Color = new Color4(1.0f, 1.0f, 1.0f, 1.0f),
-                    AttenuationA = 1.0f,
-                    AttenuationB = 0.09f,
-                    AttenuationC = 0.032f
-                };
-                
-                light.Position = sceneState.LightSettings.Position;
-                light.LookAt = sceneState.LightSettings.LookAt;
-                light.Ambient = Vector3.Multiply(new Vector3(sceneState.LightSettings.Color.R, sceneState.LightSettings.Color.G, sceneState.LightSettings.Color.B), sceneState.LightSettings.AmbientIntensity);
-                light.Diffuse = Vector3.Multiply(new Vector3(sceneState.LightSettings.Color.R, sceneState.LightSettings.Color.G, sceneState.LightSettings.Color.B), sceneState.LightSettings.DiffuseIntensity);
-                light.Specular = Vector3.Multiply(new Vector3(sceneState.LightSettings.Color.R, sceneState.LightSettings.Color.G, sceneState.LightSettings.Color.B), sceneState.LightSettings.SpecularIntensity);
-                light.SetAttenuation(sceneState.LightSettings.AttenuationA, sceneState.LightSettings.AttenuationB, sceneState.LightSettings.AttenuationC);
+                    var light = new Light();
+                    light.Position = lightSettings.Position;
+                    light.LookAt = lightSettings.LookAt;
+                    light.Ambient = new Vector3(1.0f, 1.0f, 1.0f);
+                    light.Diffuse = new Vector3(1.0f, 1.0f, 1.0f);
+                    light.Specular = new Vector3(1.0f, 1.0f, 1.0f);
+                    light.SetAttenuation(lightSettings.AttenuationA, lightSettings.AttenuationB, lightSettings.AttenuationC);
+                    lights.Add(light);
+                }
             }
         }
 
@@ -80,46 +64,14 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
 
             shader = new Shader("shaders/base.vert", "shaders/base.frag");
 
+            // Инициализируем траву
+            GrassFractal grass = new GrassFractal("textures/grass.jpg", 3, 0.8f, 0.08f, 0.3f, 1000);
+            grass.Name = "Grass";
+            grass.Position = new Vector3(0, 0, 0);
+            sceneObjects.Add(grass);
+
             lock (sceneState)
             {
-                // Инициализация настроек света
-                if (sceneState.LightSettings != null)
-                {
-                    // Устанавливаем значения по умолчанию, если они не были установлены
-                    if (sceneState.LightSettings.Position == Vector3.Zero)
-                    {
-                        sceneState.LightSettings.Position = new Vector3(0, 5, 10);
-                    }
-                    if (sceneState.LightSettings.LookAt == Vector3.Zero)
-                    {
-                        sceneState.LightSettings.LookAt = new Vector3(0, 0, 0);
-                    }
-                    if (sceneState.LightSettings.AmbientIntensity == 0)
-                    {
-                        sceneState.LightSettings.AmbientIntensity = 1.0f;
-                    }
-                    if (sceneState.LightSettings.DiffuseIntensity == 0)
-                    {
-                        sceneState.LightSettings.DiffuseIntensity = 2.0f;
-                    }
-                    if (sceneState.LightSettings.SpecularIntensity == 0)
-                    {
-                        sceneState.LightSettings.SpecularIntensity = 1.0f;
-                    }
-                    if (sceneState.LightSettings.Color.R == 0 && sceneState.LightSettings.Color.G == 0 && sceneState.LightSettings.Color.B == 0)
-                    {
-                        sceneState.LightSettings.Color = new Color4(1.0f, 1.0f, 1.0f, 1.0f);
-                    }
-
-                    // Применяем настройки света
-                    light.Position = sceneState.LightSettings.Position;
-                    light.LookAt = sceneState.LightSettings.LookAt;
-                    light.Ambient = Vector3.Multiply(new Vector3(sceneState.LightSettings.Color.R, sceneState.LightSettings.Color.G, sceneState.LightSettings.Color.B), sceneState.LightSettings.AmbientIntensity);
-                    light.Diffuse = Vector3.Multiply(new Vector3(sceneState.LightSettings.Color.R, sceneState.LightSettings.Color.G, sceneState.LightSettings.Color.B), sceneState.LightSettings.DiffuseIntensity);
-                    light.Specular = Vector3.Multiply(new Vector3(sceneState.LightSettings.Color.R, sceneState.LightSettings.Color.G, sceneState.LightSettings.Color.B), sceneState.LightSettings.SpecularIntensity);
-                    light.SetAttenuation(sceneState.LightSettings.AttenuationA, sceneState.LightSettings.AttenuationB, sceneState.LightSettings.AttenuationC);
-                }
-
                 // Инициализируем системы частиц
                 foreach (var particleSystem in sceneState.ParticleSystems)
                 {
@@ -130,6 +82,10 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                 skybox = new Skybox();
                 skybox.SetTimeOfDay(sceneState.SkyboxTimeOfDay);
                 skybox.SetAutoUpdate(sceneState.SkyboxAutoUpdate);
+
+                // Инициализируем глобальное освещение
+                globalLight.SetTimeOfDay(sceneState.SkyboxTimeOfDay);
+                globalLight.SetAutoUpdate(sceneState.SkyboxAutoUpdate);
 
                 // Ищем корневые объекты
                 foreach (var obj in sceneState.Objects.Where(o => o.Parent == null))
@@ -200,7 +156,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             {
                 if (camera.SelfDynamic != null && camera.SelfDynamic.IsGrounded)
                 {
-                    camera.SelfDynamic.Jump(5.0f); // Сила прыжка
+                    camera.SelfDynamic.Jump(2.0f); // Уменьшено с 5.0f до 2.0f
                 }
             }
 
@@ -228,12 +184,29 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                 {
                     particleSystem.Update((float)e.Time);
                 }
+
+                // Обновление анимаций
+                foreach (var animation in sceneState.Animations)
+                {
+                    animation.Update((float)e.Time);
+                }
             }
 
-            // Обновление skybox
+            // Обновление skybox и глобального освещения
             if (skybox != null)
             {
-                skybox.Update((float)e.Time);
+                lock (sceneState)
+                {
+                    if (sceneState.SkyboxAutoUpdate)
+                    {
+                        skybox.Update((float)e.Time);
+                    }
+                    else
+                    {
+                        skybox.SetTimeOfDay(sceneState.SkyboxTimeOfDay);
+                    }
+                }
+                globalLight.Update((float)e.Time);
             }
         }
 
@@ -267,15 +240,19 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             base.OnMouseDown(e);
         }
 
-        protected override void OnMouseWheel(MouseWheelEventArgs e)
-        {
-            base.OnMouseWheel(e);
-            camera.ProcessMouseScroll(e.OffsetY);
-        }
-
         protected override void OnRenderFrame(FrameEventArgs e)
         {
             base.OnRenderFrame(e);
+
+            // Включаем блендинг для прозрачности
+            GL.Enable(EnableCap.Blend);
+            GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+
+            // Обновляем тени для всех источников света
+            foreach (var light in lights)
+            {
+                light.ReCompute(this);
+            }
 
             // Render skybox first
             Matrix4 projection = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(camera.GetZoom()), Size.X / (float)Size.Y, 0.1f, 1000.0f);
@@ -285,12 +262,30 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             // Rest of the rendering
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
             GL.Viewport(0, 0, Size.X, Size.Y);
-            GL.Clear(ClearBufferMask.DepthBufferBit);
+            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
             shader.Use();
 
             camera.SetCameraUniforms(shader, Size);
-            light.SetLightUniforms(shader);
+            
+            // Устанавливаем количество источников света
+            shader.SetInt("numLights", lights.Count);
+            
+            // Устанавливаем параметры для всех источников света
+            for (int i = 0; i < lights.Count; i++)
+            {
+                var light = lights[i];
+                var lightSettings = sceneState.LightSettings[i];
+                
+                light.Ambient = Vector3.Multiply(new Vector3(lightSettings.Color.R, lightSettings.Color.G, lightSettings.Color.B), lightSettings.AmbientIntensity);
+                light.Diffuse = Vector3.Multiply(new Vector3(lightSettings.Color.R, lightSettings.Color.G, lightSettings.Color.B), lightSettings.DiffuseIntensity);
+                light.Specular = Vector3.Multiply(new Vector3(lightSettings.Color.R, lightSettings.Color.G, lightSettings.Color.B), lightSettings.SpecularIntensity);
+                light.Position = lightSettings.Position;
+                
+                light.SetLightUniforms(shader, i);
+            }
+            
+            globalLight.SetLightUniforms(shader);
 
             foreach (var obj in sceneObjects)
             {
@@ -306,6 +301,9 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                 }
             }
 
+            // Отключаем блендинг после рендеринга
+            GL.Disable(EnableCap.Blend);
+
             SwapBuffers();
         }
 
@@ -316,12 +314,31 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                 // Обновляем все параметры света
                 if (sceneState.LightSettings != null)
                 {
-                    light.Position = sceneState.LightSettings.Position;
-                    light.LookAt = sceneState.LightSettings.LookAt;
-                    light.Ambient = Vector3.Multiply(new Vector3(sceneState.LightSettings.Color.R, sceneState.LightSettings.Color.G, sceneState.LightSettings.Color.B), sceneState.LightSettings.AmbientIntensity);
-                    light.Diffuse = Vector3.Multiply(new Vector3(sceneState.LightSettings.Color.R, sceneState.LightSettings.Color.G, sceneState.LightSettings.Color.B), sceneState.LightSettings.DiffuseIntensity);
-                    light.Specular = Vector3.Multiply(new Vector3(sceneState.LightSettings.Color.R, sceneState.LightSettings.Color.G, sceneState.LightSettings.Color.B), sceneState.LightSettings.SpecularIntensity);
-                    light.SetAttenuation(sceneState.LightSettings.AttenuationA, sceneState.LightSettings.AttenuationB, sceneState.LightSettings.AttenuationC);
+                    // Удаляем лишние источники света
+                    while (lights.Count > sceneState.LightSettings.Count)
+                    {
+                        lights.RemoveAt(lights.Count - 1);
+                    }
+
+                    // Добавляем новые источники света
+                    while (lights.Count < sceneState.LightSettings.Count)
+                    {
+                        lights.Add(new Light());
+                    }
+
+                    // Обновляем параметры существующих источников света
+                    for (int i = 0; i < lights.Count; i++)
+                    {
+                        var light = lights[i];
+                        var lightSettings = sceneState.LightSettings[i];
+                        
+                        light.Position = lightSettings.Position;
+                        light.LookAt = lightSettings.LookAt;
+                        light.Ambient = Vector3.Multiply(new Vector3(lightSettings.Color.R, lightSettings.Color.G, lightSettings.Color.B), lightSettings.AmbientIntensity);
+                        light.Diffuse = Vector3.Multiply(new Vector3(lightSettings.Color.R, lightSettings.Color.G, lightSettings.Color.B), lightSettings.DiffuseIntensity);
+                        light.Specular = Vector3.Multiply(new Vector3(lightSettings.Color.R, lightSettings.Color.G, lightSettings.Color.B), lightSettings.SpecularIntensity);
+                        light.SetAttenuation(lightSettings.AttenuationA, lightSettings.AttenuationB, lightSettings.AttenuationC);
+                    }
                 }
 
                 // Обновляем объекты
@@ -371,6 +388,16 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         protected override void OnUnload()
         {
             base.OnUnload();
+
+            // Освобождаем ресурсы травы
+            foreach (var obj in sceneObjects)
+            {
+                if (obj is IDisposable disposable)
+                {
+                    disposable.Dispose();
+                }
+            }
+
             shader.Dispose();
             skybox.Dispose();
         }

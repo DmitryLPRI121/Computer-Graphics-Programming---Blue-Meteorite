@@ -3,32 +3,32 @@
 namespace Computer_Graphics_Programming_Blue_Meteorite
 {
 
-    public class SceneState
+    public class SceneObjects
     {
         public float GravityStrength { get; set; } = 9.8f;
 
         // Состояние света
-        public LightSettings LightSettings { get; set; } = new LightSettings
+        public List<LightSettings> LightSettings { get; set; } = new List<LightSettings>
         {
-            Position = new Vector3(0, 5, 10),
-            LookAt = new Vector3(0, 0, 0),
-            AmbientIntensity = 0.5f,
-            DiffuseIntensity = 1.0f,
-            SpecularIntensity = 0.8f,
-            AttenuationA = 0.3f,
-            AttenuationB = 0.07f,
-            AttenuationC = 0.025f,
-            Color = new Color4(1.0f, 1.0f, 1.0f, 1.0f)
+            new LightSettings
+            {
+                Position = new Vector3(0, 140, -340),
+                LookAt = new Vector3(0, 0, 0),
+                AmbientIntensity = 5.0f,
+                DiffuseIntensity = 2.0f,
+                SpecularIntensity = 1.0f,
+                AttenuationA = 1.0f,
+                AttenuationB = 0.09f,
+                AttenuationC = 0.032f,
+                Color = new Color4(1.0f, 1.0f, 1.0f, 1.0f)
+            }
         };
-
-        // Интерактивность
-        public bool IsGrabToolEnabled { get; set; } = false;
 
         // Активные объекты на сцене
         public List<SceneObject> Objects { get; set; } = new List<SceneObject>();
 
         // Активные анимации
-        public List<IAnimation> Animations { get; set; } = new List<IAnimation>();
+        public List<AnimationSystem> Animations { get; set; } = new List<AnimationSystem>();
 
         // Системы частиц
         public List<ParticleSystem> ParticleSystems { get; set; } = new List<ParticleSystem>();
@@ -36,7 +36,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         public float SkyboxTimeOfDay { get; set; } = 0.5f;
         public bool SkyboxAutoUpdate { get; set; } = true;
 
-        public SceneState()
+        public SceneObjects()
         {
             // Инициализация объектов
 
@@ -46,21 +46,20 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                 Name = "Метеорит",
                 Type = ObjectTypes.Sphere,
                 Texture = "textures/meteorite.jpg",
-                Position = new Vector3(0f, 80f, -80f), 
+                Position = new Vector3(0f, 150f, -350f), 
                 Rotation = new Vector3(0, 0, 0),
-                Scale = new Vector3(15f, 15f, 15f),
+                Scale = new Vector3(50f, 50f, 50f),
                 IsDynamic = false,
             });
 
-            // Футбольное поле (используем плоскость)
             Objects.Add(new SceneObject
             {
-                Name = "Футбольное поле",
+                Name = "Поверхность",
                 Type = ObjectTypes.Plane,
                 Texture = "textures/grass.jpg",
                 Position = new Vector3(0f, 0f, 0f),
                 Rotation = new Vector3(0, 0, 0),
-                Scale = new Vector3(20f, 1f, 30f), // Размер поля
+                Scale = new Vector3(100f, 1f, 100f), // Размер поля
                 IsDynamic = false,
             });
 
@@ -69,7 +68,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             {
                 Name = "Трибуна 1",
                 Type = ObjectTypes.Prism,
-                Texture = null, // Без текстуры
+                Texture = "textures/tribuna.jpg",
                 Position = new Vector3(-22f, 1f, 0f),
                 Rotation = new Vector3(0, 90, 0),
                 Scale = new Vector3(2f, 3f, 30f),
@@ -80,7 +79,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             {
                 Name = "Трибуна 2",
                 Type = ObjectTypes.Prism,
-                Texture = null, // Без текстуры
+                Texture = "textures/tribuna.jpg", // Без текстуры
                 Position = new Vector3(22f, 1f, 0f),
                 Rotation = new Vector3(0, -90, 0),
                 Scale = new Vector3(2f, 3f, 30f),
@@ -91,7 +90,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             {
                 Name = "Трибуна 3",
                 Type = ObjectTypes.Prism,
-                Texture = null, // Без текстуры
+                Texture = "textures/tribuna.jpg", // Без текстуры
                 Position = new Vector3(0f, 1f, -32f),
                 Rotation = new Vector3(0, 0, 0),
                 Scale = new Vector3(20f, 3f, 2f),
@@ -105,7 +104,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                 {
                     Name = $"Пятиэтажка {i + 1}",
                     Type = ObjectTypes.Cube,
-                    Texture = null, // Без текстуры
+                    Texture = "textures/build.jpg",
                     Position = new Vector3(
                         (i % 2 == 0 ? -25f : 25f),
                         7.5f,
@@ -137,12 +136,11 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             return Objects[index];
         }
 
-        internal IAnimation GetAnimation(int index)
+        internal AnimationSystem GetAnimation(int index)
         {
             return Animations[index];
         }
     }
-
 
     public enum ObjectTypes
     {
@@ -163,6 +161,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
 
         public ObjectTypes Type { get; set; }
         public Vector3 Position { get; set; }
+        public Vector3 Color { get; set; } = new Vector3(1f, 1f, 1f); // Default white color
 
         public Vector3 AppliedForce { get; set; }
         public bool isForceApplied { get; set; }

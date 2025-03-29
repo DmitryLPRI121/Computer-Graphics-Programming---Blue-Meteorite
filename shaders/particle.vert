@@ -17,6 +17,9 @@ void main()
     
     gl_PointSize = Size;
     
-    vec4 pos = projection * view * vec4(aPos, 1.0);
-    gl_Position = pos;
+    vec4 worldPos = vec4(aPos, 1.0);
+    vec4 viewPos = view * worldPos;
+    vec4 clipPos = projection * viewPos;
+    
+    gl_Position = clipPos;
 } 

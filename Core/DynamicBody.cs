@@ -10,10 +10,31 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
 
         private Vector3 _velocity;
         private Vector3 _acceleration;
+        private float _jumpForce = 4.0f;
+        private float _jumpRiseSpeed = 2.0f;
+        private float _fallSpeed = 9.8f;
 
         public Vector3 Velocity => _velocity;
         public float Mass { get; set; } = 1.0f;
-        public float Drag { get; set; } = 0.5f; // Сопротивление воздуха
+        public float Drag { get; set; } = 0.5f;
+
+        public float JumpForce
+        {
+            get => _jumpForce;
+            set => _jumpForce = value;
+        }
+
+        public float JumpRiseSpeed
+        {
+            get => _jumpRiseSpeed;
+            set => _jumpRiseSpeed = value;
+        }
+
+        public float FallSpeed
+        {
+            get => _fallSpeed;
+            set => _fallSpeed = value;
+        }
 
         public TransformableObject Target { get; set; }
 
@@ -28,7 +49,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         {
             if (!IsGrounded)
             {
-                _acceleration.Y -= gravityForce * Mass;
+                _acceleration.Y -= _fallSpeed * Mass;
             }
         }
 
@@ -70,7 +91,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         {
             if (IsGrounded)
             {
-                _velocity.Y = jumpForce;
+                _velocity.Y = _jumpForce * _jumpRiseSpeed;
                 IsGrounded = false;
             }
         }

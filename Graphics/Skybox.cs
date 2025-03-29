@@ -87,7 +87,6 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         public void SetTimeOfDay(float time)
         {
             timeOfDay = time;
-            autoUpdate = false;
         }
 
         public void SetAutoUpdate(bool auto)

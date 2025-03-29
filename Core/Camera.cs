@@ -13,9 +13,14 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         private float yaw;
         private float pitch;
 
-        private float movementSpeed;
+        private float _movementSpeed;
         private float mouseSensitivity;
-        private float zoom;
+
+        public float MovementSpeed
+        {
+            get => _movementSpeed;
+            set => _movementSpeed = value;
+        }
 
         public Camera(Vector3 startPosition, Vector3 upDirection, float startYaw = -90.0f, float startPitch = 0.0f) : base()
         {
@@ -25,9 +30,8 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             pitch = startPitch;
 
             front = new Vector3(0.0f, 0.0f, -1.0f);
-            movementSpeed = 10f;
+            _movementSpeed = 10f;
             mouseSensitivity = 0.1f;
-            zoom = 45.0f;
 
             UpdateCameraVectors();
         }
@@ -39,7 +43,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
 
         public float GetZoom()
         {
-            return zoom;
+            return 45.0f; // Fixed zoom value
         }
 
         public void ProcessKeyboard(CameraMovement direction, float deltaTime)
@@ -47,8 +51,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             Vector3 frontProject = new Vector3(front.X, 0, front.Z).Normalized();
             Vector3 rightProject = new Vector3(right.X, 0, right.Z).Normalized();
 
-
-            float velocity = movementSpeed * deltaTime;
+            float velocity = _movementSpeed * deltaTime;
             if (direction == CameraMovement.Forward)
                 Position += frontProject * velocity;
             if (direction == CameraMovement.Backward)
@@ -59,7 +62,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                 Position += rightProject * velocity;
             if (direction == CameraMovement.Jump)
                 if (Position.Y <= CAMERA_FLOOR + 0.1f)
-                    SelfDynamic.ApplyForce(new Vector3(0,1000,0),0.1f);
+                    SelfDynamic.ApplyForce(new Vector3(0,400,0),0.1f);
         }
 
         public void ProcessMouseMovement(float xoffset, float yoffset, bool constrainPitch = true)
@@ -79,15 +82,6 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             }
 
             UpdateCameraVectors();
-        }
-
-        public void ProcessMouseScroll(float yoffset)
-        {
-            zoom -= yoffset;
-            if (zoom < 1.0f)
-                zoom = 1.0f;
-            if (zoom > 45.0f)
-                zoom = 45.0f;
         }
 
         internal void SetCameraUniforms(Shader shader, Vector2 size)

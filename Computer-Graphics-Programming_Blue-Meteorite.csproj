@@ -14,4 +14,18 @@
     <PackageReference Include="OpenTK.GLControl" Version="4.0.2" />
   </ItemGroup>
 
+  <!-- Копирование папки текстур -->
+  <ItemGroup>
+    <None Include="textures\**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <!-- Копирование папки шейдеров -->
+  <ItemGroup>
+    <None Include="shaders\**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

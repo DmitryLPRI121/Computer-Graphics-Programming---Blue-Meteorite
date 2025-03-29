@@ -16,10 +16,8 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             ShadowWidth = shadowWidth;
             ShadowHeight = shadowHeight;
 
-            // 1. Создание фреймбуфера для рендеринга теней
             DepthMapFBO = GL.GenFramebuffer();
 
-            // 2. Создание текстуры для хранения глубины
             DepthMap = GL.GenTexture();
             GL.BindTexture(TextureTarget.Texture2D, DepthMap);
             GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.DepthComponent, shadowWidth, shadowHeight, 0, PixelFormat.DepthComponent, PixelType.Float, IntPtr.Zero);
@@ -29,7 +27,6 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
 
-            // Настройка граничного цвета для текстуры теней
             float[] borderColor = new float[] { 1.0f, 1.0f, 1.0f, 1.0f };
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBorderColor, borderColor);
 
@@ -76,7 +73,6 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         {
             shader.SetMatrix4("lightSpaceMatrix", LightSpaceMatrix);
 
-            // Привязываем shadow map
             BindForReading(1);
             shader.SetInt("shadowMap", 1);
         }

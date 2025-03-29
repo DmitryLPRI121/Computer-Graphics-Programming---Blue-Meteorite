@@ -6,11 +6,12 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
 {
     public class SceneSettingsForm : Form
     {
-        private Scene scene;
-        private SceneState sceneState;
+        private SceneSettings scene;
+        private SceneObjects sceneState;
         private TabControl tabControl;
+        private TrackBar timeOfDaySlider;
 
-        public SceneSettingsForm(Scene scene, SceneState sceneState)
+        public SceneSettingsForm(SceneSettings scene, SceneObjects sceneState)
         {
             this.scene = scene;
             this.sceneState = sceneState;
@@ -36,7 +37,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             timeOfDayLabel.AutoSize = true;
             skyboxTab.Controls.Add(timeOfDayLabel);
 
-            TrackBar timeOfDaySlider = new TrackBar();
+            timeOfDaySlider = new TrackBar();
             timeOfDaySlider.Location = new Point(10, 50);
             timeOfDaySlider.Width = 200;
             timeOfDaySlider.Minimum = 0;
@@ -46,10 +47,14 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             timeOfDaySlider.TickStyle = TickStyle.BottomRight;
             timeOfDaySlider.ValueChanged += (s, e) =>
             {
-                sceneState.SkyboxTimeOfDay = timeOfDaySlider.Value / 100f;
-                if (scene != null)
+                lock (sceneState)
                 {
-                    scene.skybox.SetTimeOfDay(sceneState.SkyboxTimeOfDay);
+                    sceneState.SkyboxTimeOfDay = timeOfDaySlider.Value / 100f;
+                    if (scene != null)
+                    {
+                        scene.skybox.SetTimeOfDay(sceneState.SkyboxTimeOfDay);
+                        scene.globalLight.SetTimeOfDay(sceneState.SkyboxTimeOfDay);
+                    }
                 }
             };
             skyboxTab.Controls.Add(timeOfDaySlider);
@@ -80,13 +85,22 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             autoUpdateCheckbox.Checked = sceneState.SkyboxAutoUpdate;
             autoUpdateCheckbox.CheckedChanged += (s, e) =>
             {
-                sceneState.SkyboxAutoUpdate = autoUpdateCheckbox.Checked;
-                if (scene != null)
+                lock (sceneState)
                 {
-                    scene.skybox.SetAutoUpdate(sceneState.SkyboxAutoUpdate);
+                    sceneState.SkyboxAutoUpdate = autoUpdateCheckbox.Checked;
+                    if (scene != null)
+                    {
+                        scene.skybox.SetAutoUpdate(sceneState.SkyboxAutoUpdate);
+                        scene.globalLight.SetAutoUpdate(sceneState.SkyboxAutoUpdate);
+                    }
+                    // Enable/disable time of day slider based on auto-update state
+                    timeOfDaySlider.Enabled = !sceneState.SkyboxAutoUpdate;
                 }
             };
             skyboxTab.Controls.Add(autoUpdateCheckbox);
+
+            // Set initial state of the time of day slider
+            timeOfDaySlider.Enabled = !sceneState.SkyboxAutoUpdate;
 
             tabControl.TabPages.Add(skyboxTab);
             this.Controls.Add(tabControl);
