@@ -5,22 +5,14 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
 
     public class SceneObjects
     {
-        public float GravityStrength { get; set; } = 9.8f;
+        public float GravityStrength { get; set; } = 9.8f + 25.2f;
 
         // Состояние света
         public List<LightSettings> LightSettings { get; set; } = new List<LightSettings>
         {
-            new LightSettings
+            new LightSettings()
             {
-                Position = new Vector3(0, 140, -340),
-                LookAt = new Vector3(0, 0, 0),
-                AmbientIntensity = 5.0f,
-                DiffuseIntensity = 2.0f,
-                SpecularIntensity = 1.0f,
-                AttenuationA = 1.0f,
-                AttenuationB = 0.09f,
-                AttenuationC = 0.032f,
-                Color = new Color4(1.0f, 1.0f, 1.0f, 1.0f)
+                Position = new Vector3(0, 140, -340)
             }
         };
 
@@ -61,6 +53,51 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                 Rotation = new Vector3(0, 0, 0),
                 Scale = new Vector3(100f, 1f, 100f), // Размер поля
                 IsDynamic = false,
+            });
+
+            // Добавим несколько динамических объектов для демонстрации коллизий
+            Objects.Add(new SceneObject
+            {
+                Name = "Динамический куб 1",
+                Type = ObjectTypes.Cube,
+                Texture = "textures/build.jpg",
+                Position = new Vector3(-1f, 1f, -2f),
+                Rotation = new Vector3(0, 0, 0),
+                Scale = new Vector3(3f, 3f, 3f),
+                IsDynamic = false,
+            });
+
+            //Objects.Add(new SceneObject
+            //{
+            //    Name = "Динамический куб 3",
+            //    Type = ObjectTypes.Cube,
+            //    Texture = "textures/build.jpg",
+            //    Position = new Vector3(-10f, 20f, -20f),
+            //    Rotation = new Vector3(0, 0, 0),
+            //    Scale = new Vector3(7f,7f, 7f),
+            //    IsDynamic = true,
+            //});
+
+            Objects.Add(new SceneObject
+            {
+                Name = "Динамический куб 2",
+                Type = ObjectTypes.Cube,
+                Texture = "textures/build.jpg",
+                Position = new Vector3(10f, 15f, -20f),
+                Rotation = new Vector3(0, 0, 0),
+                Scale = new Vector3(5f, 5f, 5f),
+                IsDynamic = true,
+            });
+
+            Objects.Add(new SceneObject
+            {
+                Name = "Динамическая сфера",
+                Type = ObjectTypes.Sphere,
+                Texture = "textures/meteorite.jpg",
+                Position = new Vector3(5f, 5f, -10f),
+                Rotation = new Vector3(0, 0, 0),
+                Scale = new Vector3(5f, 5f, 5f),
+                IsDynamic = true,
             });
 
             // Трибуны (используем призмы)
@@ -169,9 +206,33 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         public Vector3 Rotation { get; set; }
         public Vector3 Scale { get; set; }
 
+        // Constructor to ensure force-related properties are initialized
+        public SceneObject()
+        {
+            Position = Vector3.Zero;
+            Rotation = Vector3.Zero;
+            Scale = Vector3.One;
+            AppliedForce = Vector3.Zero;
+            isForceApplied = false;
+        }
+
         internal void ApplyTranslation(Vector3 vector3)
         {
-            Position += vector3;
+            // For dynamic objects, we set a flag to apply force during the next sync
+            // We also update the position directly to ensure changes are visible immediately in the UI
+            if (IsDynamic)
+            {
+                AppliedForce = vector3 * 50.0f; // Significantly increase force to make movement more noticeable
+                isForceApplied = true;
+                
+                // Also update position directly so UI changes appear immediately
+                Position += vector3;
+            }
+            else
+            {
+                // For static objects, update position directly
+                Position += vector3;
+            }
         }
 
         internal void ApplyRotation(Vector3 vector3)
@@ -195,6 +256,34 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         public float AttenuationB { get; set; }
         public float AttenuationC { get; set; }
         public Color4 Color { get; set; }
+
+        // Конструктор по умолчанию
+        public LightSettings()
+        {
+            Position = new Vector3(0, 5, 10);
+            LookAt = new Vector3(0, 0, 0);
+            AmbientIntensity = 2.0f;
+            DiffuseIntensity = 2.0f;
+            SpecularIntensity = 1.0f;
+            AttenuationA = 1.0f;
+            AttenuationB = 0.09f;
+            AttenuationC = 0.032f;
+            Color = new Color4(1.0f, 1.0f, 1.0f, 1.0f);
+        }
+
+        // Конструктор копирования для создания нового источника света с теми же параметрами
+        public LightSettings(LightSettings source)
+        {
+            Position = source.Position;
+            LookAt = source.LookAt;
+            AmbientIntensity = source.AmbientIntensity;
+            DiffuseIntensity = source.DiffuseIntensity;
+            SpecularIntensity = source.SpecularIntensity;
+            AttenuationA = source.AttenuationA;
+            AttenuationB = source.AttenuationB;
+            AttenuationC = source.AttenuationC;
+            Color = source.Color;
+        }
 
         public void Update(Vector3 position, Vector3 lookAt, float ambient, float diffuse, float specular,
                            float attA, float attB, float attC, Color4 color)

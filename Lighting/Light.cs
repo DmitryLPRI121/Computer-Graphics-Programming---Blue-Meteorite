@@ -78,7 +78,15 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         /// </summary>
         public void RecomputeLightSpaceMatrix()
         {
-            shadowMap.CalculateLightSpaceMatrix(Position, LookAt, nearPlane, farPlane);
+            try
+            {
+                shadowMap.CalculateLightSpaceMatrix(Position, LookAt, nearPlane, farPlane);
+            }
+            catch (Exception ex)
+            {
+                // Логирование или игнорирование ошибки, если расчет не удался
+                Console.WriteLine($"Error in RecomputeLightSpaceMatrix: {ex.Message}");
+            }
         }
 
         /// <summary>
@@ -86,22 +94,30 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         /// </summary>
         public void RenderShadows(SceneSettings scene)
         {
-            shadowShader.Use();
-
-            // Активируем карту теней для записи
-            shadowMap.BindForWriting();
-
-            // Устанавливаем uniform-переменные для шейдера теней
-            shadowMap.SetShadowShaderUniforms(shadowShader);
-
-            // Рендерим объекты сцены
-            foreach (var obj in scene.sceneObjects)
+            try
             {
-                obj.Render(shadowShader);
-            }
+                shadowShader.Use();
 
-            // Отключаем запись в карту теней
-            shadowMap.Unbind();
+                // Активируем карту теней для записи
+                shadowMap.BindForWriting();
+
+                // Устанавливаем uniform-переменные для шейдера теней
+                shadowMap.SetShadowShaderUniforms(shadowShader);
+
+                // Рендерим объекты сцены
+                foreach (var obj in scene.sceneObjects)
+                {
+                    obj.Render(shadowShader);
+                }
+
+                // Отключаем запись в карту теней
+                shadowMap.Unbind();
+            }
+            catch (Exception ex)
+            {
+                // Логирование или игнорирование ошибки при рендеринге теней
+                Console.WriteLine($"Error in RenderShadows: {ex.Message}");
+            }
         }
 
         /// <summary>

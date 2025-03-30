@@ -2,6 +2,8 @@
 using System;
 using System.Drawing;
 using System.Windows.Forms;
+using Computer_Graphics_Programming_Blue_Meteorite.Graphics;
+using Computer_Graphics_Programming_Blue_Meteorite.Forms;
 
 namespace Computer_Graphics_Programming_Blue_Meteorite
 {
@@ -15,11 +17,23 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         private ObjectTransformForm transformForm;
         private SceneSettingsForm skyboxForm;
         private CameraControlForm cameraForm;
+        private FilterControlForm filterForm;
+        private GrayscaleFilter grayscaleFilter;
+        private SepiaFilter sepiaFilter;
+        private BlurFilter blurFilter;
+        private PixelizedFilter pixelizedFilter;
+        private NightVisionFilter nightVisionFilter;
 
-        public Form1(SceneObjects state, SceneSettings scene)
+        public Form1(SceneObjects state, SceneSettings scene, GrayscaleFilter grayscaleFilter, SepiaFilter sepiaFilter, BlurFilter blurFilter, PixelizedFilter pixelizedFilter, NightVisionFilter nightVisionFilter)
         {
+            InitializeComponent();
             this.sceneState = state;
             this.scene = scene;
+            this.grayscaleFilter = grayscaleFilter;
+            this.sepiaFilter = sepiaFilter;
+            this.blurFilter = blurFilter;
+            this.pixelizedFilter = pixelizedFilter;
+            this.nightVisionFilter = nightVisionFilter;
             InitializeUI();
         }
 
@@ -68,8 +82,15 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                 Size = new System.Drawing.Size(200, 30)
             };
 
+            Button filterBtn = new Button
+            {
+                Text = "Filter Control",
+                Location = new System.Drawing.Point(10, 250),
+                Size = new System.Drawing.Size(200, 30)
+            };
+
             // Add controls to form
-            this.Controls.AddRange(new Control[] { animationBtn, particleBtn, lightBtn, transformBtn, skyboxBtn, cameraBtn });
+            this.Controls.AddRange(new Control[] { animationBtn, particleBtn, lightBtn, transformBtn, skyboxBtn, cameraBtn, filterBtn });
 
             // Add event handlers
             animationBtn.Click += (s, e) => OpenForm(ref animationForm, () => new AnimationControlForm(sceneState));
@@ -78,6 +99,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             transformBtn.Click += (s, e) => OpenForm(ref transformForm, () => new ObjectTransformForm(sceneState));
             skyboxBtn.Click += (s, e) => OpenForm(ref skyboxForm, () => new SceneSettingsForm(scene, sceneState));
             cameraBtn.Click += (s, e) => OpenForm(ref cameraForm, () => new CameraControlForm(scene.camera, scene.camera.SelfDynamic, sceneState));
+            filterBtn.Click += (s, e) => OpenForm(ref filterForm, () => new FilterControlForm(grayscaleFilter, sepiaFilter, blurFilter, pixelizedFilter, nightVisionFilter));
 
             // Initialize all control forms
             animationForm = new AnimationControlForm(sceneState);
@@ -86,6 +108,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             transformForm = new ObjectTransformForm(sceneState);
             skyboxForm = new SceneSettingsForm(scene, sceneState);
             cameraForm = new CameraControlForm(scene.camera, scene.camera.SelfDynamic, sceneState);
+            filterForm = new FilterControlForm(grayscaleFilter, sepiaFilter, blurFilter, pixelizedFilter, nightVisionFilter);
         }
 
         private void OpenForm<T>(ref T form, Func<T> createForm) where T : Form

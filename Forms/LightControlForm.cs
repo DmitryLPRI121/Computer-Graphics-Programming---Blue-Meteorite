@@ -193,29 +193,35 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         private void UpdateLightSelector()
         {
             lightSelector.Items.Clear();
-            for (int i = 0; i < sceneState.LightSettings.Count; i++)
+            lock (sceneState)
             {
-                lightSelector.Items.Add($"Light {i + 1}");
+                for (int i = 0; i < sceneState.LightSettings.Count; i++)
+                {
+                    lightSelector.Items.Add($"Light {i + 1}");
+                }
             }
         }
 
         private void UpdateControlsForSelectedLight()
         {
-            if (lightSelector.SelectedIndex < 0 || lightSelector.SelectedIndex >= sceneState.LightSettings.Count)
-                return;
+            lock (sceneState)
+            {
+                if (lightSelector.SelectedIndex < 0 || lightSelector.SelectedIndex >= sceneState.LightSettings.Count)
+                    return;
 
-            var light = sceneState.LightSettings[lightSelector.SelectedIndex];
-            LightXCord.Text = light.Position.X.ToString();
-            LightYCord.Text = light.Position.Y.ToString();
-            LightZCord.Text = light.Position.Z.ToString();
+                var light = sceneState.LightSettings[lightSelector.SelectedIndex];
+                LightXCord.Text = light.Position.X.ToString();
+                LightYCord.Text = light.Position.Y.ToString();
+                LightZCord.Text = light.Position.Z.ToString();
 
-            ambientTrackBar.Value = (int)(light.AmbientIntensity * 100);
-            diffuseTrackBar.Value = (int)(light.DiffuseIntensity * 100);
-            specularTrackBar.Value = (int)(light.SpecularIntensity * 100);
+                ambientTrackBar.Value = (int)(light.AmbientIntensity * 100);
+                diffuseTrackBar.Value = (int)(light.DiffuseIntensity * 100);
+                specularTrackBar.Value = (int)(light.SpecularIntensity * 100);
 
-            lightRComponent.Value = (int)(light.Color.R * 100);
-            lightGComponent.Value = (int)(light.Color.G * 100);
-            lightBComponent.Value = (int)(light.Color.B * 100);
+                lightRComponent.Value = (int)(light.Color.R * 100);
+                lightGComponent.Value = (int)(light.Color.G * 100);
+                lightBComponent.Value = (int)(light.Color.B * 100);
+            }
         }
 
         private void LightSelector_SelectedIndexChanged(object sender, EventArgs e)
@@ -226,53 +232,80 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
 
         private void AddLightBtn_Click(object sender, EventArgs e)
         {
-            sceneState.LightSettings.Add(new LightSettings
+            lock (sceneState)
             {
-                Position = new Vector3(0, 5, 10),
-                LookAt = new Vector3(0, 0, 0),
-                AmbientIntensity = 2.0f,
-                DiffuseIntensity = 2.0f,
-                SpecularIntensity = 1.0f,
-                AttenuationA = 1.0f,
-                AttenuationB = 0.09f,
-                AttenuationC = 0.032f,
-                Color = new Color4(1.0f, 1.0f, 1.0f, 1.0f)
-            });
+                // Создаем новый источник света с позицией (0,0,0)
+                sceneState.LightSettings.Add(new LightSettings()
+                {
+                    Position = new Vector3(0, 0, 0),
+                    LookAt = new Vector3(0, 0, 0),
+                    AmbientIntensity = 2.0f,
+                    DiffuseIntensity = 2.0f,
+                    SpecularIntensity = 1.0f,
+                    AttenuationA = 1.0f,
+                    AttenuationB = 0.09f,
+                    AttenuationC = 0.032f,
+                    Color = new Color4(1.0f, 1.0f, 1.0f, 1.0f)
+                });
+            }
             UpdateLightSelector();
             lightSelector.SelectedIndex = sceneState.LightSettings.Count - 1;
         }
 
         private void RemoveLightBtn_Click(object sender, EventArgs e)
         {
-            if (lightSelector.SelectedIndex >= 0 && sceneState.LightSettings.Count > 1)
+            if (lightSelector.SelectedIndex >= 0)
             {
-                sceneState.LightSettings.RemoveAt(lightSelector.SelectedIndex);
+                int selectedIndex = lightSelector.SelectedIndex;
+                
+                // Удаляем источник света из коллекции
+                lock (sceneState)
+                {
+                    sceneState.LightSettings.RemoveAt(selectedIndex);
+                    
+                    // Не будем автоматически добавлять источник света, если удалены все
+                    // Позволим удалить все источники света
+                }
+                
+                // Обновляем интерфейс
                 UpdateLightSelector();
+                
+                // Выбираем новый индекс, если есть источники света
                 if (lightSelector.Items.Count > 0)
-                    lightSelector.SelectedIndex = 0;
+                {
+                    // Если был удален не последний элемент, выбираем элемент с тем же индексом
+                    // Иначе выбираем последний элемент
+                    lightSelector.SelectedIndex = Math.Min(selectedIndex, lightSelector.Items.Count - 1);
+                }
             }
         }
 
         private void SetPositionBtn_Click(object sender, EventArgs e)
         {
-            if (lightSelector.SelectedIndex < 0 || lightSelector.SelectedIndex >= sceneState.LightSettings.Count)
-                return;
-
-            if (float.TryParse(LightXCord.Text.Replace('.', ','), out float x) &&
-                float.TryParse(LightYCord.Text.Replace('.', ','), out float y) &&
-                float.TryParse(LightZCord.Text.Replace('.', ','), out float z))
+            lock (sceneState)
             {
-                sceneState.LightSettings[lightSelector.SelectedIndex].Position = new Vector3(x, y, z);
+                if (lightSelector.SelectedIndex < 0 || lightSelector.SelectedIndex >= sceneState.LightSettings.Count)
+                    return;
+
+                if (float.TryParse(LightXCord.Text.Replace('.', ','), out float x) &&
+                    float.TryParse(LightYCord.Text.Replace('.', ','), out float y) &&
+                    float.TryParse(LightZCord.Text.Replace('.', ','), out float z))
+                {
+                    sceneState.LightSettings[lightSelector.SelectedIndex].Position = new Vector3(x, y, z);
+                }
             }
         }
 
         private void LightChanged(object sender, EventArgs e)
         {
-            if (isInitializing || lightSelector.SelectedIndex < 0 || lightSelector.SelectedIndex >= sceneState.LightSettings.Count)
+            if (isInitializing || lightSelector.SelectedIndex < 0)
                 return;
             
             lock (sceneState)
             {
+                if (lightSelector.SelectedIndex >= sceneState.LightSettings.Count)
+                    return;
+                
                 var light = sceneState.LightSettings[lightSelector.SelectedIndex];
                 var textBox = sender as TextBox;
                 if (textBox != null && float.TryParse(textBox.Text.Replace('.', ','), out float value))

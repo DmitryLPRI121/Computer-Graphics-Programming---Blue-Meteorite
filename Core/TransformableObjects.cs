@@ -65,5 +65,69 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         }
 
         protected virtual void Draw(Shader shader) { }
+        
+        public void ApplyTranslation(Vector3 translation)
+        {
+            // For dynamic objects, we should apply a force instead of directly changing the position
+            if (SelfDynamic != null)
+            {
+                // Apply a larger force to make the movement more immediate and noticeable
+                Vector3 force = translation * 100.0f; // Higher multiplier for more responsive movement
+                SelfDynamic.ApplyForce(force, 0.1f);
+                
+                // Also update position directly to provide immediate visual feedback
+                Position += translation;
+            }
+            else
+            {
+                // For static objects, directly update position
+                Position += translation;
+            }
+        }
+        
+        public void ApplyRotation(Vector3 rotation)
+        {
+            // Create a new Vector3 with the sum of current rotation and new rotation
+            Vector3 newRotation = new Vector3(
+                Rotation.X + rotation.X,
+                Rotation.Y + rotation.Y,
+                Rotation.Z + rotation.Z
+            );
+            
+            // Normalize rotation angles to avoid issues
+            if (newRotation.X > 360) newRotation.X %= 360;
+            if (newRotation.Y > 360) newRotation.Y %= 360;
+            if (newRotation.Z > 360) newRotation.Z %= 360;
+            
+            if (newRotation.X < 0) newRotation.X += 360;
+            if (newRotation.Y < 0) newRotation.Y += 360;
+            if (newRotation.Z < 0) newRotation.Z += 360;
+            
+            // Assign the normalized rotation
+            Rotation = newRotation;
+            
+            // For dynamic objects, we should apply a torque or rotational force
+            // This is simplified for now, but in a full physics simulation
+            // we would calculate proper angular momentum
+            if (SelfDynamic != null)
+            {
+                // In a full implementation, we would apply angular velocity here
+                // SelfDynamic.ApplyTorque(rotation);
+            }
+        }
+        
+        public void ApplyScale(Vector3 scale)
+        {
+            Scale += scale;
+            
+            // Ensure scale doesn't go below a minimum threshold
+            Scale = new Vector3(
+                MathF.Max(0.1f, Scale.X),
+                MathF.Max(0.1f, Scale.Y),
+                MathF.Max(0.1f, Scale.Z)
+            );
+            
+            // No need to update DynamicBody here as it handles scale via bounding box calculations
+        }
     }
 }

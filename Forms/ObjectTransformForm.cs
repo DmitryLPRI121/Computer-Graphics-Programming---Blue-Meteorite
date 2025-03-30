@@ -115,13 +115,40 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             };
 
             Label scaleXLabel = new Label { Text = "X:", Location = new System.Drawing.Point(10, 350), AutoSize = true };
-            objectScaleXCord = new NumericUpDown { Location = new System.Drawing.Point(30, 350), Size = new System.Drawing.Size(60, 20), DecimalPlaces = 2, Minimum = 0.01m, Maximum = 100, Increment = 0.1m, Value = 1 };
+            objectScaleXCord = new NumericUpDown 
+            { 
+                Location = new System.Drawing.Point(30, 350), 
+                Size = new System.Drawing.Size(60, 20), 
+                DecimalPlaces = 2, 
+                Minimum = -100m, 
+                Maximum = 100m, 
+                Increment = 0.1m, 
+                Value = 1 
+            };
 
             Label scaleYLabel = new Label { Text = "Y:", Location = new System.Drawing.Point(100, 350), AutoSize = true };
-            objectScaleYCord = new NumericUpDown { Location = new System.Drawing.Point(120, 350), Size = new System.Drawing.Size(60, 20), DecimalPlaces = 2, Minimum = 0.01m, Maximum = 100, Increment = 0.1m, Value = 1 };
+            objectScaleYCord = new NumericUpDown 
+            { 
+                Location = new System.Drawing.Point(120, 350), 
+                Size = new System.Drawing.Size(60, 20), 
+                DecimalPlaces = 2, 
+                Minimum = -100m, 
+                Maximum = 100m, 
+                Increment = 0.1m, 
+                Value = 1 
+            };
 
             Label scaleZLabel = new Label { Text = "Z:", Location = new System.Drawing.Point(190, 350), AutoSize = true };
-            objectScaleZCord = new NumericUpDown { Location = new System.Drawing.Point(210, 350), Size = new System.Drawing.Size(60, 20), DecimalPlaces = 2, Minimum = 0.01m, Maximum = 100, Increment = 0.1m, Value = 1 };
+            objectScaleZCord = new NumericUpDown 
+            { 
+                Location = new System.Drawing.Point(210, 350), 
+                Size = new System.Drawing.Size(60, 20), 
+                DecimalPlaces = 2, 
+                Minimum = -100m, 
+                Maximum = 100m, 
+                Increment = 0.1m, 
+                Value = 1 
+            };
 
             scaleBtn = new Button
             {
@@ -213,6 +240,18 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                     float y = (float)objectYCord.Value;
                     float z = (float)objectZCord.Value;
 
+                    // Calculate the displacement vector
+                    Vector3 displacement = new Vector3(x, y, z) - selectedObject.Position;
+                    
+                    // For dynamic objects, we need to set the force application flag
+                    if (selectedObject.IsDynamic)
+                    {
+                        // Calculate a strong force to move the object to the target position
+                        selectedObject.AppliedForce = displacement * 100.0f;
+                        selectedObject.isForceApplied = true;
+                    }
+                    
+                    // Always update the position directly in the scene state
                     selectedObject.Position = new Vector3(x, y, z);
                 }
             }
@@ -227,9 +266,25 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                     float x = (float)objectTranslateXCord.Value;
                     float y = (float)objectTranslateYCord.Value;
                     float z = (float)objectTranslateZCord.Value;
+                    
+                    Vector3 translation = new Vector3(x, y, z);
+                    
+                    // For dynamic objects, set the force directly to ensure motion
+                    if (selectedObject.IsDynamic)
+                    {
+                        selectedObject.AppliedForce = translation * 100.0f;
+                        selectedObject.isForceApplied = true;
+                        
+                        // Also apply the translation directly to the position for immediate feedback
+                        selectedObject.Position += translation;
+                    }
+                    else
+                    {
+                        // For static objects, simply translate
+                        selectedObject.ApplyTranslation(translation);
+                    }
 
-                    selectedObject.ApplyTranslation(new Vector3(x, y, z));
-
+                    // Update the position display
                     isInitializing = true;
                     objectXCord.Value = (decimal)selectedObject.Position.X;
                     objectYCord.Value = (decimal)selectedObject.Position.Y;

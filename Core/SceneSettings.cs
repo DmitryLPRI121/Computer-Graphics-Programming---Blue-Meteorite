@@ -3,6 +3,7 @@ using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Graphics.OpenGL4;
 using System.Diagnostics;
+using Computer_Graphics_Programming_Blue_Meteorite.Graphics;
 
 namespace Computer_Graphics_Programming_Blue_Meteorite
 {
@@ -21,13 +22,22 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         private Vector2 lastMousePosition;
         private bool firstMove = true;
 
+        // Post-processing framebuffer
+        private int postProcessFBO;
+        private int postProcessTexture;
+        public GrayscaleFilter grayscaleFilter;
+        public SepiaFilter sepiaFilter;
+        public BlurFilter blurFilter;
+        public PixelizedFilter pixelizedFilter;
+        public NightVisionFilter nightVisionFilter;
+
         public SceneSettings(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings, SceneObjects ss)
             : base(gameWindowSettings, nativeWindowSettings)
         {
             sceneState = ss;
             camera = new Camera(new Vector3(0.0f, 2.0f, 3.0f), Vector3.UnitY);
 
-            DynamicBody cameraDynamic = new DynamicBody(camera);
+            DynamicBody cameraDynamic = new DynamicBody(camera, Vector3.UnitY);
             cameraDynamic.floor_y = 3;
             camera.SelfDynamic = cameraDynamic;
 
@@ -50,6 +60,19 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                     lights.Add(light);
                 }
             }
+        }
+
+        public void InitializeFilters()
+        {
+            // Инициализируем фреймбуфер для пост-обработки
+            InitializePostProcessFramebuffer();
+            
+            // Инициализируем фильтры
+            grayscaleFilter = new GrayscaleFilter();
+            sepiaFilter = new SepiaFilter();
+            blurFilter = new BlurFilter();
+            pixelizedFilter = new PixelizedFilter();
+            nightVisionFilter = new NightVisionFilter();
         }
 
         protected override void OnLoad()
@@ -95,6 +118,36 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             }
         }
 
+        private void InitializePostProcessFramebuffer()
+        {
+            // Создаем фреймбуфер
+            postProcessFBO = GL.GenFramebuffer();
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, postProcessFBO);
+
+            // Создаем текстуру для цветового буфера
+            postProcessTexture = GL.GenTexture();
+            GL.BindTexture(TextureTarget.Texture2D, postProcessTexture);
+            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgb, Size.X, Size.Y, 0, PixelFormat.Rgb, PixelType.UnsignedByte, IntPtr.Zero);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
+
+            // Привязываем текстуру к фреймбуферу
+            GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0, TextureTarget.Texture2D, postProcessTexture, 0);
+
+            // Создаем и привязываем буфер глубины
+            int rbo = GL.GenRenderbuffer();
+            GL.BindRenderbuffer(RenderbufferTarget.Renderbuffer, rbo);
+            GL.RenderbufferStorage(RenderbufferTarget.Renderbuffer, RenderbufferStorage.Depth24Stencil8, Size.X, Size.Y);
+            GL.FramebufferRenderbuffer(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthStencilAttachment, RenderbufferTarget.Renderbuffer, rbo);
+
+            if (GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer) != FramebufferErrorCode.FramebufferComplete)
+            {
+                throw new Exception("Post-process framebuffer is not complete!");
+            }
+
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+        }
+
         private TransformableObject recursiveBuild(SceneObject obj)
         {
             TransformableObject current;
@@ -113,25 +166,27 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                     current = new Prism(obj.Texture);
                     break;
                 default:
-                    throw new Exception();
+                    throw new Exception($"Unknown object type: {obj.Type}");
             }
 
             current.Name = obj.Name;
             current.Position = obj.Position;
             current.Rotation = obj.Rotation;
             current.Scale = obj.Scale;
+            current.Color = new Vector3(1.0f, 1.0f, 1.0f);
+
+            if (obj.IsDynamic)
+            {
+                DynamicBody db = new DynamicBody(current, Vector3.UnitY);
+                current.SelfDynamic = db;
+                physicalStates.Add(db);
+            }
 
             foreach (var rel in sceneState.Objects.Where(o => o.Parent != null && o.Parent.Equals(obj.Name)))
             {
                 current.AddChild(recursiveBuild(rel));
             }
 
-            if (obj.IsDynamic)
-            {
-                DynamicBody db = new DynamicBody(current);
-                physicalStates.Add(db);
-                current.SelfDynamic = db;
-            }
             return current;
         }
 
@@ -165,16 +220,294 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                 CursorState = CursorState.Normal;
             }
 
-            // Физическое обновление
+            // Физическое обновление всех динамических объектов
             foreach (var st in physicalStates)
             {
-                // Применяем гравитацию
+                // Применяем гравитацию ко всем динамическим объектам, которые не на земле
                 if (!st.IsGrounded)
                 {
                     st.ApplyGravity(sceneState.GravityStrength, (float)e.Time);
                 }
 
+                // Обновляем физическое состояние
                 st.Update((float)e.Time);
+            }
+
+            // Обработка коллизий
+            // Создаем список объектов, включая камеру
+            var objectsWithCamera = new List<TransformableObject>(sceneObjects);
+            objectsWithCamera.Add(camera); // Добавляем камеру в список объектов для коллизий
+            
+            var collisions = CollisionDetector.DetectAllCollisions(objectsWithCamera);
+            if (collisions.Count > 0)
+            {
+                CollisionDetector.ResolveCollisions(collisions);
+                
+                // Дополнительная проверка после разрешения коллизий для всех типов объектов
+                // чтобы убедиться, что персонаж не застрял внутри объектов
+                foreach (var obj in sceneObjects)
+                {
+                    float cameraRadius = camera.CollisionRadius;
+                    float objRadius = 0;
+                    Vector3 closestPoint = Vector3.Zero;
+                    bool needCheck = false;
+                    
+                    if (obj is Sphere sphere)
+                    {
+                        // Для сфер используем радиус
+                        objRadius = 0.5f * MathF.Max(sphere.Scale.X, MathF.Max(sphere.Scale.Y, sphere.Scale.Z));
+                        closestPoint = sphere.Position;
+                        needCheck = true;
+                    }
+                    else if (obj is Cube cube)
+                    {
+                        // Для кубов находим ближайшую точку на поверхности куба
+                        Vector3 halfSize = cube.Scale * 0.5f;
+                        Vector3 cubeToCamera = camera.Position - cube.Position;
+                        
+                        // Ограничиваем по каждой оси
+                        Vector3 clampedPoint = Vector3.Zero;
+                        clampedPoint.X = MathHelper.Clamp(cubeToCamera.X, -halfSize.X, halfSize.X);
+                        clampedPoint.Y = MathHelper.Clamp(cubeToCamera.Y, -halfSize.Y, halfSize.Y);
+                        clampedPoint.Z = MathHelper.Clamp(cubeToCamera.Z, -halfSize.Z, halfSize.Z);
+                        
+                        // Проверяем, находится ли камера внутри куба
+                        bool insideX = MathF.Abs(cubeToCamera.X) < halfSize.X;
+                        bool insideY = MathF.Abs(cubeToCamera.Y) < halfSize.Y;
+                        bool insideZ = MathF.Abs(cubeToCamera.Z) < halfSize.Z;
+                        
+                        if (insideX && insideY && insideZ)
+                        {
+                            // Если камера внутри куба, находим ближайшую грань
+                            float distToXFace = MathF.Min(halfSize.X - MathF.Abs(cubeToCamera.X), halfSize.X + MathF.Abs(cubeToCamera.X));
+                            float distToYFace = MathF.Min(halfSize.Y - MathF.Abs(cubeToCamera.Y), halfSize.Y + MathF.Abs(cubeToCamera.Y));
+                            float distToZFace = MathF.Min(halfSize.Z - MathF.Abs(cubeToCamera.Z), halfSize.Z + MathF.Abs(cubeToCamera.Z));
+                            
+                            if (distToXFace <= distToYFace && distToXFace <= distToZFace)
+                            {
+                                clampedPoint = new Vector3(
+                                    cubeToCamera.X > 0 ? halfSize.X : -halfSize.X,
+                                    cubeToCamera.Y,
+                                    cubeToCamera.Z);
+                            }
+                            else if (distToYFace <= distToXFace && distToYFace <= distToZFace)
+                            {
+                                clampedPoint = new Vector3(
+                                    cubeToCamera.X,
+                                    cubeToCamera.Y > 0 ? halfSize.Y : -halfSize.Y,
+                                    cubeToCamera.Z);
+                            }
+                            else
+                            {
+                                clampedPoint = new Vector3(
+                                    cubeToCamera.X,
+                                    cubeToCamera.Y,
+                                    cubeToCamera.Z > 0 ? halfSize.Z : -halfSize.Z);
+                            }
+                        }
+                        
+                        closestPoint = cube.Position + clampedPoint;
+                        objRadius = 0; // Используем фактическую точку на поверхности
+                        needCheck = true;
+                    }
+                    else if (obj is Prism prism)
+                    {
+                        // Для призм используем улучшенный подход с учетом наклонной верхней грани
+                        Vector3 halfSize = prism.Scale * 0.5f;
+                        Vector3 prismToCamera = camera.Position - prism.Position;
+                        
+                        // Проверяем позицию камеры относительно призмы
+                        bool insideX = MathF.Abs(prismToCamera.X) < halfSize.X;
+                        bool insideZ = MathF.Abs(prismToCamera.Z) < halfSize.Z;
+                        bool insideY = prismToCamera.Y > -halfSize.Y && 
+                                    prismToCamera.Y < halfSize.Y;
+                        
+                        // Определяем, находится ли камера в прямоугольной части призмы (нижняя часть)
+                        bool insideRectBase = insideX && insideZ && prismToCamera.Y < 0 && insideY;
+                        
+                        // Определяем, находится ли камера в треугольной части призмы (верхняя часть)
+                        bool potentiallyInsideTop = insideX && insideZ && prismToCamera.Y >= 0 && insideY;
+                        
+                        if (potentiallyInsideTop)
+                        {
+                            // Рассчитываем максимальную высоту в данной точке XZ
+                            float normalizedX = MathF.Abs(prismToCamera.X) / halfSize.X;
+                            float normalizedZ = MathF.Abs(prismToCamera.Z) / halfSize.Z;
+                            float maxYAtPosition = halfSize.Y * (1.0f - MathF.Max(normalizedX, normalizedZ));
+                            
+                            // Проверяем, находится ли камера под наклонной гранью
+                            bool insideTopTriangle = prismToCamera.Y < maxYAtPosition;
+                            
+                            if (insideTopTriangle)
+                            {
+                                // Камера внутри треугольной части, нужно вытолкнуть наружу
+                                
+                                // Найдем ближайшую грань - боковую или верхнюю
+                                float distToXEdge = halfSize.X - MathF.Abs(prismToCamera.X);
+                                float distToZEdge = halfSize.Z - MathF.Abs(prismToCamera.Z);
+                                float distToTop = maxYAtPosition - prismToCamera.Y;
+                                
+                                Vector3 pushDirection;
+                                float pushDistance;
+                                
+                                if (distToXEdge <= distToZEdge && distToXEdge <= distToTop)
+                                {
+                                    // Ближе к X-грани
+                                    pushDirection = new Vector3(prismToCamera.X > 0 ? 1 : -1, 0, 0);
+                                    pushDistance = distToXEdge + cameraRadius + 0.1f;
+                                }
+                                else if (distToZEdge <= distToXEdge && distToZEdge <= distToTop)
+                                {
+                                    // Ближе к Z-грани
+                                    pushDirection = new Vector3(0, 0, prismToCamera.Z > 0 ? 1 : -1);
+                                    pushDistance = distToZEdge + cameraRadius + 0.1f;
+                                }
+                                else
+                                {
+                                    // Ближе к верхней грани - вычисляем нормаль к наклонной поверхности
+                                    float nx = prismToCamera.X / halfSize.X;
+                                    float nz = prismToCamera.Z / halfSize.Z;
+                                    pushDirection = Vector3.Normalize(new Vector3(nx, 1.0f, nz));
+                                    pushDistance = distToTop + cameraRadius + 0.1f;
+                                }
+                                
+                                // Выталкиваем камеру
+                                camera.Position = prism.Position + pushDirection * pushDistance;
+                                
+                                // Корректируем скорость, чтобы избежать повторного проникновения
+                                if (camera.SelfDynamic != null)
+                                {
+                                    float velocityTowardsPrism = Vector3.Dot(camera.SelfDynamic._velocity, -pushDirection);
+                                    if (velocityTowardsPrism > 0)
+                                    {
+                                        camera.SelfDynamic._velocity -= -pushDirection * velocityTowardsPrism;
+                                    }
+                                }
+                                
+                                needCheck = false; // Уже обработали этот случай
+                            }
+                        }
+                        else if (insideRectBase)
+                        {
+                            // Камера внутри прямоугольной части, нужно вытолкнуть наружу
+                            
+                            // Найдем ближайшую грань
+                            float distToXEdge = halfSize.X - MathF.Abs(prismToCamera.X);
+                            float distToZEdge = halfSize.Z - MathF.Abs(prismToCamera.Z);
+                            float distToBottom = halfSize.Y + prismToCamera.Y;
+                            float distToTop = -prismToCamera.Y; // Расстояние до верхней плоскости основания
+                            
+                            Vector3 pushDirection;
+                            float pushDistance;
+                            
+                            if (distToXEdge <= distToZEdge && distToXEdge <= distToBottom && distToXEdge <= distToTop)
+                            {
+                                // Ближе к X-грани
+                                pushDirection = new Vector3(prismToCamera.X > 0 ? 1 : -1, 0, 0);
+                                pushDistance = distToXEdge + cameraRadius + 0.1f;
+                            }
+                            else if (distToZEdge <= distToXEdge && distToZEdge <= distToBottom && distToZEdge <= distToTop)
+                            {
+                                // Ближе к Z-грани
+                                pushDirection = new Vector3(0, 0, prismToCamera.Z > 0 ? 1 : -1);
+                                pushDistance = distToZEdge + cameraRadius + 0.1f;
+                            }
+                            else if (distToBottom <= distToXEdge && distToBottom <= distToZEdge && distToBottom <= distToTop)
+                            {
+                                // Ближе к нижней грани
+                                pushDirection = new Vector3(0, -1, 0);
+                                pushDistance = distToBottom + cameraRadius + 0.1f;
+                            }
+                            else
+                            {
+                                // Ближе к верхней плоскости основания
+                                pushDirection = new Vector3(0, 1, 0);
+                                pushDistance = distToTop + cameraRadius + 0.1f;
+                            }
+                            
+                            // Выталкиваем камеру
+                            camera.Position = prism.Position + pushDirection * pushDistance;
+                            
+                            // Корректируем скорость, чтобы избежать повторного проникновения
+                            if (camera.SelfDynamic != null)
+                            {
+                                float velocityTowardsPrism = Vector3.Dot(camera.SelfDynamic._velocity, -pushDirection);
+                                if (velocityTowardsPrism > 0)
+                                {
+                                    camera.SelfDynamic._velocity -= -pushDirection * velocityTowardsPrism;
+                                }
+                            }
+                            
+                            needCheck = false; // Уже обработали этот случай
+                        }
+                        
+                        if (needCheck)
+                        {
+                            // Для случаев, когда камера снаружи, но может быть близко к призме
+                            // Используем стандартный подход с ближайшей точкой
+                            Vector3 clampedPoint = Vector3.Zero;
+                            
+                            // Ограничиваем по X и Z
+                            clampedPoint.X = MathHelper.Clamp(prismToCamera.X, -halfSize.X, halfSize.X);
+                            clampedPoint.Z = MathHelper.Clamp(prismToCamera.Z, -halfSize.Z, halfSize.Z);
+                            
+                            // Для Y координаты учитываем форму призмы
+                            if (prismToCamera.Y >= 0)
+                            {
+                                // Верхняя треугольная часть
+                                float normalizedX = MathF.Abs(clampedPoint.X) / halfSize.X;
+                                float normalizedZ = MathF.Abs(clampedPoint.Z) / halfSize.Z;
+                                float maxY = halfSize.Y * (1.0f - MathF.Max(normalizedX, normalizedZ));
+                                clampedPoint.Y = MathHelper.Clamp(prismToCamera.Y, 0, maxY);
+                            }
+                            else
+                            {
+                                // Нижняя прямоугольная часть
+                                clampedPoint.Y = MathHelper.Clamp(prismToCamera.Y, -halfSize.Y, 0);
+                            }
+                            
+                            closestPoint = prism.Position + clampedPoint;
+                            objRadius = 0; // Используем фактическую точку на поверхности
+                        }
+                    }
+                    
+                    if (needCheck)
+                    {
+                        // Вектор от объекта к камере
+                        Vector3 dirToCamera = camera.Position - closestPoint;
+                        float distance = dirToCamera.Length;
+                        
+                        // Минимальное допустимое расстояние между объектом и камерой
+                        float minAllowedDistance = objRadius + cameraRadius + 0.05f; // Добавляем буфер
+                        
+                        // Если камера оказалась слишком близко или внутри объекта
+                        if (distance < minAllowedDistance)
+                        {
+                            // Нормализуем направление
+                            Vector3 dirNormalized = distance > 0.01f ? dirToCamera / distance : new Vector3(0, 1, 0);
+                            
+                            // Если направление близко к вертикальному и объект под нами, не выталкиваем
+                            bool isUpwardsDir = dirNormalized.Y > 0.95f;
+                            bool isStandingOnObject = camera.Position.Y > obj.Position.Y + obj.Scale.Y * 0.4f;
+                            
+                            if (!(isUpwardsDir && isStandingOnObject))
+                            {
+                                // Корректируем позицию камеры, выталкивая ее наружу
+                                camera.Position = closestPoint + dirNormalized * minAllowedDistance;
+                                
+                                // Если камера двигалась в сторону объекта, останавливаем это движение
+                                if (camera.SelfDynamic != null)
+                                {
+                                    float velocityTowardsObject = Vector3.Dot(camera.SelfDynamic._velocity, -dirNormalized);
+                                    if (velocityTowardsObject > 0)
+                                    {
+                                        camera.SelfDynamic._velocity -= -dirNormalized * velocityTowardsObject;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             // Обновление систем частиц
@@ -248,6 +581,9 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             GL.Enable(EnableCap.Blend);
             GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 
+            // Синхронизируем источники света перед рендерингом
+            SyncWithSceneState();
+
             // Обновляем тени для всех источников света
             foreach (var light in lights)
             {
@@ -259,8 +595,8 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             Matrix4 view = camera.GetViewMatrix();
             skybox.Render(projection, view);
 
-            // Rest of the rendering
-            GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+            // Привязываем фреймбуфер пост-обработки
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, postProcessFBO);
             GL.Viewport(0, 0, Size.X, Size.Y);
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
@@ -271,18 +607,27 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             // Устанавливаем количество источников света
             shader.SetInt("numLights", lights.Count);
             
-            // Устанавливаем параметры для всех источников света
-            for (int i = 0; i < lights.Count; i++)
+            // Устанавливаем параметры для всех источников света, если они есть
+            if (lights.Count > 0)
             {
-                var light = lights[i];
-                var lightSettings = sceneState.LightSettings[i];
-                
-                light.Ambient = Vector3.Multiply(new Vector3(lightSettings.Color.R, lightSettings.Color.G, lightSettings.Color.B), lightSettings.AmbientIntensity);
-                light.Diffuse = Vector3.Multiply(new Vector3(lightSettings.Color.R, lightSettings.Color.G, lightSettings.Color.B), lightSettings.DiffuseIntensity);
-                light.Specular = Vector3.Multiply(new Vector3(lightSettings.Color.R, lightSettings.Color.G, lightSettings.Color.B), lightSettings.SpecularIntensity);
-                light.Position = lightSettings.Position;
-                
-                light.SetLightUniforms(shader, i);
+                lock (sceneState)
+                {
+                    for (int i = 0; i < lights.Count; i++)
+                    {
+                        if (i >= sceneState.LightSettings.Count)
+                            break;
+                            
+                        var light = lights[i];
+                        var lightSettings = sceneState.LightSettings[i];
+                        
+                        light.Ambient = Vector3.Multiply(new Vector3(lightSettings.Color.R, lightSettings.Color.G, lightSettings.Color.B), lightSettings.AmbientIntensity);
+                        light.Diffuse = Vector3.Multiply(new Vector3(lightSettings.Color.R, lightSettings.Color.G, lightSettings.Color.B), lightSettings.DiffuseIntensity);
+                        light.Specular = Vector3.Multiply(new Vector3(lightSettings.Color.R, lightSettings.Color.G, lightSettings.Color.B), lightSettings.SpecularIntensity);
+                        light.Position = lightSettings.Position;
+                        
+                        light.SetLightUniforms(shader, i);
+                    }
+                }
             }
             
             globalLight.SetLightUniforms(shader);
@@ -303,6 +648,38 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
 
             // Отключаем блендинг после рендеринга
             GL.Disable(EnableCap.Blend);
+
+            // Привязываем основной фреймбуфер
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+            GL.Viewport(0, 0, Size.X, Size.Y);
+            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+
+            // Применяем пост-обработку
+            if (nightVisionFilter.IsEnabled)
+            {
+                nightVisionFilter.Apply(postProcessTexture);
+            }
+            else if (pixelizedFilter.IsEnabled)
+            {
+                pixelizedFilter.Apply(postProcessTexture, new Vector2(Size.X, Size.Y));
+            }
+            else if (blurFilter.IsEnabled)
+            {
+                blurFilter.Apply(postProcessTexture, new Vector2(Size.X, Size.Y));
+            }
+            else if (sepiaFilter.IsEnabled)
+            {
+                sepiaFilter.Apply(postProcessTexture);
+            }
+            else if (grayscaleFilter.IsEnabled)
+            {
+                grayscaleFilter.Apply(postProcessTexture);
+            }
+            else
+            {
+                // Если фильтры отключены, используем шейдер grayscaleFilter для отображения текстуры
+                grayscaleFilter.Apply(postProcessTexture);
+            }
 
             SwapBuffers();
         }
@@ -341,10 +718,24 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                     }
                 }
 
-                // Обновляем объекты
+                // Sync transformable objects from sceneState (but preserve physics for dynamic objects)
                 foreach (var obj in sceneObjects)
                 {
                     recursiveSync(obj);
+                }
+                
+                // After physics calculations, sync the positions of dynamic objects back to sceneState
+                foreach (var obj in sceneObjects)
+                {
+                    if (obj.SelfDynamic != null)
+                    {
+                        var stateObj = sceneState.Objects.Find(o => o.Name.Equals(obj.Name));
+                        if (stateObj != null && stateObj.IsDynamic)
+                        {
+                            // Update the scene state with the physics-calculated position
+                            stateObj.Position = obj.Position;
+                        }
+                    }
                 }
             }
         }
@@ -359,19 +750,43 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             var stateObj = sceneState.Objects.Find(o => o.Name.Equals(obj.Name));
             if (stateObj != null)
             {
-                if (stateObj.IsDynamic)
+                if (stateObj.IsDynamic && obj.SelfDynamic != null)
                 {
-                    Matrix4 objMat = obj.GetModelMatrix();
-                    stateObj.Position = objMat.ExtractTranslation();
-                    stateObj.Rotation = objMat.ExtractRotation().Xyz;
-                    stateObj.Scale = objMat.ExtractScale();
+                    // Always apply rotation and scale from sceneState
+                    obj.Rotation = stateObj.Rotation;
+                    obj.Scale = stateObj.Scale;
+                    
+                    // For direct position setting from the transform panel,
+                    // we need to detect if position has changed significantly
+                    Vector3 positionDifference = stateObj.Position - obj.Position;
+                    bool positionChangedSignificantly = positionDifference.Length > 1.0f;
+                    
+                    // If position was explicitly set in the UI (large change) or the object is idle,
+                    // update position directly
+                    if (positionChangedSignificantly || obj.SelfDynamic.Velocity.Length < 0.05f)
+                    {
+                        obj.Position = stateObj.Position;
+                        // Reset velocity when position is explicitly set
+                        if (positionChangedSignificantly)
+                        {
+                            obj.SelfDynamic._velocity = Vector3.Zero;
+                        }
+                    }
+
+                    // Apply forces from UI controls
                     if (stateObj.isForceApplied)
                     {
-                        obj.SelfDynamic.ApplyForce(stateObj.AppliedForce, 0.01f);
+                        // Reset the object's velocity to make the force application more direct
+                        obj.SelfDynamic._velocity = Vector3.Zero;
+                        
+                        // Apply the force from UI control with higher magnitude for more immediate effect
+                        obj.SelfDynamic.ApplyForce(stateObj.AppliedForce, 0.1f);
+                        stateObj.isForceApplied = false; // Reset force flag after applying
                     }
                 }
                 else
                 {
+                    // For non-dynamic objects, simply update all properties from sceneState
                     obj.Position = stateObj.Position;
                     obj.Rotation = stateObj.Rotation;
                     obj.Scale = stateObj.Scale;
@@ -383,6 +798,18 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         {
             base.OnResize(e);
             GL.Viewport(0, 0, Size.X, Size.Y);
+
+            // Обновляем размер текстуры пост-обработки
+            GL.BindTexture(TextureTarget.Texture2D, postProcessTexture);
+            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgb, Size.X, Size.Y, 0, PixelFormat.Rgb, PixelType.UnsignedByte, IntPtr.Zero);
+
+            // Обновляем размер буфера глубины
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, postProcessFBO);
+            int rbo = GL.GenRenderbuffer();
+            GL.BindRenderbuffer(RenderbufferTarget.Renderbuffer, rbo);
+            GL.RenderbufferStorage(RenderbufferTarget.Renderbuffer, RenderbufferStorage.Depth24Stencil8, Size.X, Size.Y);
+            GL.FramebufferRenderbuffer(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthStencilAttachment, RenderbufferTarget.Renderbuffer, rbo);
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
         }
 
         protected override void OnUnload()
@@ -397,6 +824,15 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                     disposable.Dispose();
                 }
             }
+
+            // Освобождаем ресурсы пост-обработки
+            GL.DeleteFramebuffer(postProcessFBO);
+            GL.DeleteTexture(postProcessTexture);
+            grayscaleFilter.Cleanup();
+            sepiaFilter.Cleanup();
+            blurFilter.Cleanup();
+            pixelizedFilter.Cleanup();
+            nightVisionFilter.Cleanup();
 
             shader.Dispose();
             skybox.Dispose();

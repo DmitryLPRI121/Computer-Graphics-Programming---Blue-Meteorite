@@ -303,8 +303,8 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                 Size = new System.Drawing.Size(80, 20),
                 DecimalPlaces = 2,
                 Increment = 0.1m,
-                Minimum = -100m,
-                Maximum = 100m
+                Minimum = -1000m,
+                Maximum = 1000m
             };
 
             NumericUpDown yNum = new NumericUpDown
@@ -313,8 +313,8 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                 Size = new System.Drawing.Size(80, 20),
                 DecimalPlaces = 2,
                 Increment = 0.1m,
-                Minimum = -100m,
-                Maximum = 100m
+                Minimum = -1000m,
+                Maximum = 1000m
             };
 
             NumericUpDown zNum = new NumericUpDown
@@ -323,19 +323,28 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                 Size = new System.Drawing.Size(80, 20),
                 DecimalPlaces = 2,
                 Increment = 0.1m,
-                Minimum = -100m,
-                Maximum = 100m
+                Minimum = -1000m,
+                Maximum = 1000m
             };
 
             if (selectedAnimation != null)
             {
-                Vector3 value = getValue(selectedAnimation);
-                xNum.Value = (decimal)value.X;
-                yNum.Value = (decimal)value.Y;
-                zNum.Value = (decimal)value.Z;
+                try
+                {
+                    Vector3 value = getValue(selectedAnimation);
+                    
+                    xNum.Value = Math.Clamp((decimal)value.X, xNum.Minimum, xNum.Maximum);
+                    yNum.Value = Math.Clamp((decimal)value.Y, yNum.Minimum, yNum.Maximum);
+                    zNum.Value = Math.Clamp((decimal)value.Z, zNum.Minimum, zNum.Maximum);
+                }
+                catch (System.ArgumentOutOfRangeException)
+                {
+                    xNum.Value = 0;
+                    yNum.Value = 0;
+                    zNum.Value = 0;
+                }
             }
 
-            // Add value changed handlers
             EventHandler valueChangedHandler = (s, e) =>
             {
                 if (selectedAnimation != null)

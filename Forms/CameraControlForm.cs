@@ -12,10 +12,11 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         private SceneObjects sceneState;
 
         private NumericUpDown movementSpeedInput;
-        private NumericUpDown jumpHeightInput;
         private NumericUpDown jumpRiseSpeedInput;
-        private NumericUpDown fallSpeedInput;
         private NumericUpDown gravityInput;
+        private NumericUpDown collisionRadiusInput;
+        private NumericUpDown horizontalVelocityTransferInput;
+        private NumericUpDown verticalVelocityTransferInput;
 
         public CameraControlForm(Camera camera, DynamicBody cameraDynamic, SceneObjects sceneState)
         {
@@ -29,117 +30,139 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         private void InitializeComponent()
         {
             this.Text = "Camera Control";
-            this.Size = new Size(300, 400);
+            this.ClientSize = new Size(300, 250); // Увеличим размер формы
+            this.FormBorderStyle = FormBorderStyle.FixedDialog;
+            this.MaximizeBox = false;
+            this.MinimizeBox = false;
+            this.StartPosition = FormStartPosition.CenterScreen;
 
-            // Movement Speed Control
+            // Movement Speed
             Label movementSpeedLabel = new Label
             {
                 Text = "Movement Speed:",
                 Location = new Point(10, 20),
-                AutoSize = true
+                Size = new Size(150, 20)
             };
 
             movementSpeedInput = new NumericUpDown
             {
-                Location = new Point(10, 50),
-                Size = new Size(120, 20),
-                DecimalPlaces = 2,
-                Minimum = 0.1m,
-                Maximum = 100m,
-                Increment = 0.1m,
-                Value = 10m
+                Location = new Point(160, 20),
+                Size = new Size(100, 20),
+                Minimum = 1,
+                Maximum = 100,
+                DecimalPlaces = 1,
+                Increment = 0.5m,
+                Value = 20
             };
+            movementSpeedInput.ValueChanged += (s, e) => UpdateCameraParameters();
 
-            // Jump Height Control
-            Label jumpHeightLabel = new Label
-            {
-                Text = "Jump Height:",
-                Location = new Point(10, 90),
-                AutoSize = true
-            };
-
-            jumpHeightInput = new NumericUpDown
-            {
-                Location = new Point(10, 120),
-                Size = new Size(120, 20),
-                DecimalPlaces = 2,
-                Minimum = 0.1m,
-                Maximum = 100m,
-                Increment = 0.1m,
-                Value = 5m
-            };
-
-            // Jump Rise Speed Control
+            // Jump Rise Speed
             Label jumpRiseSpeedLabel = new Label
             {
                 Text = "Jump Rise Speed:",
-                Location = new Point(10, 160),
-                AutoSize = true
+                Location = new Point(10, 50),
+                Size = new Size(150, 20)
             };
 
             jumpRiseSpeedInput = new NumericUpDown
             {
-                Location = new Point(10, 190),
-                Size = new Size(120, 20),
-                DecimalPlaces = 2,
-                Minimum = 0.1m,
-                Maximum = 100m,
-                Increment = 0.1m,
-                Value = 5m
+                Location = new Point(160, 50),
+                Size = new Size(100, 20),
+                Minimum = 1,
+                Maximum = 50,
+                DecimalPlaces = 1,
+                Increment = 0.5m,
+                Value = 15
             };
+            jumpRiseSpeedInput.ValueChanged += (s, e) => UpdateCameraParameters();
 
-            // Fall Speed Control
-            Label fallSpeedLabel = new Label
-            {
-                Text = "Fall Speed:",
-                Location = new Point(10, 230),
-                AutoSize = true
-            };
-
-            fallSpeedInput = new NumericUpDown
-            {
-                Location = new Point(10, 260),
-                Size = new Size(120, 20),
-                DecimalPlaces = 2,
-                Minimum = 0.1m,
-                Maximum = 100m,
-                Increment = 0.1m,
-                Value = 9.8m
-            };
-
-            // Gravity Control
+            // Gravity
             Label gravityLabel = new Label
             {
-                Text = "Gravity:",
-                Location = new Point(10, 300),
-                AutoSize = true
+                Text = "Gravity Strength:",
+                Location = new Point(10, 80),
+                Size = new Size(150, 20)
             };
 
             gravityInput = new NumericUpDown
             {
-                Location = new Point(10, 330),
-                Size = new Size(120, 20),
-                DecimalPlaces = 2,
-                Minimum = 0.1m,
-                Maximum = 100m,
-                Increment = 0.1m,
+                Location = new Point(160, 80),
+                Size = new Size(100, 20),
+                Minimum = 1,
+                Maximum = 100,
+                DecimalPlaces = 1,
+                Increment = 0.5m,
                 Value = 9.8m
             };
-
-            // Add value changed handlers
-            movementSpeedInput.ValueChanged += (s, e) => UpdateCameraParameters();
-            jumpHeightInput.ValueChanged += (s, e) => UpdateCameraParameters();
-            jumpRiseSpeedInput.ValueChanged += (s, e) => UpdateCameraParameters();
-            fallSpeedInput.ValueChanged += (s, e) => UpdateCameraParameters();
             gravityInput.ValueChanged += (s, e) => UpdateCameraParameters();
+            
+            // Collision Radius
+            Label collisionRadiusLabel = new Label
+            {
+                Text = "Collision Radius:",
+                Location = new Point(10, 110),
+                Size = new Size(150, 20)
+            };
 
-            // Add controls to form
+            collisionRadiusInput = new NumericUpDown
+            {
+                Location = new Point(160, 110),
+                Size = new Size(100, 20),
+                Minimum = 0.1m,
+                Maximum = 5,
+                DecimalPlaces = 2,
+                Increment = 0.1m,
+                Value = 1.0m
+            };
+            collisionRadiusInput.ValueChanged += (s, e) => UpdateCameraParameters();
+            
+            // Horizontal Velocity Transfer
+            Label horizontalVelocityLabel = new Label
+            {
+                Text = "Horizontal Transfer:",
+                Location = new Point(10, 140),
+                Size = new Size(150, 20)
+            };
+
+            horizontalVelocityTransferInput = new NumericUpDown
+            {
+                Location = new Point(160, 140),
+                Size = new Size(100, 20),
+                Minimum = 0m,
+                Maximum = 2m,
+                DecimalPlaces = 2,
+                Increment = 0.1m,
+                Value = 0.7m
+            };
+            horizontalVelocityTransferInput.ValueChanged += (s, e) => UpdateCameraParameters();
+            
+            // Vertical Velocity Transfer
+            Label verticalVelocityLabel = new Label
+            {
+                Text = "Vertical Transfer:",
+                Location = new Point(10, 170),
+                Size = new Size(150, 20)
+            };
+
+            verticalVelocityTransferInput = new NumericUpDown
+            {
+                Location = new Point(160, 170),
+                Size = new Size(100, 20),
+                Minimum = 0m,
+                Maximum = 2m,
+                DecimalPlaces = 2,
+                Increment = 0.1m,
+                Value = 0.5m
+            };
+            verticalVelocityTransferInput.ValueChanged += (s, e) => UpdateCameraParameters();
+
             this.Controls.AddRange(new Control[] {
                 movementSpeedLabel, movementSpeedInput,
-                jumpHeightLabel, jumpHeightInput,
                 jumpRiseSpeedLabel, jumpRiseSpeedInput,
-                fallSpeedLabel, fallSpeedInput,
-                gravityLabel, gravityInput
+                gravityLabel, gravityInput,
+                collisionRadiusLabel, collisionRadiusInput,
+                horizontalVelocityLabel, horizontalVelocityTransferInput,
+                verticalVelocityLabel, verticalVelocityTransferInput
             });
         }
 
@@ -148,6 +171,14 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             if (camera != null)
             {
                 movementSpeedInput.Value = (decimal)camera.MovementSpeed;
+                collisionRadiusInput.Value = (decimal)camera.CollisionRadius;
+            }
+
+            if (cameraDynamic != null)
+            {
+                jumpRiseSpeedInput.Value = (decimal)cameraDynamic.JumpRiseSpeed;
+                horizontalVelocityTransferInput.Value = (decimal)cameraDynamic.HorizontalVelocityTransferFactor;
+                verticalVelocityTransferInput.Value = (decimal)cameraDynamic.VerticalVelocityTransferFactor;
             }
 
             if (sceneState != null)
@@ -160,19 +191,24 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         {
             if (camera != null)
             {
+                // Скорость передвижения влияет только на горизонтальное движение
                 camera.MovementSpeed = (float)movementSpeedInput.Value;
+                // Радиус коллизии
+                camera.CollisionRadius = (float)collisionRadiusInput.Value;
             }
 
             if (cameraDynamic != null)
             {
-                // Update jump parameters
-                cameraDynamic.JumpForce = (float)jumpHeightInput.Value;
+                // Скорость взлета при прыжке
                 cameraDynamic.JumpRiseSpeed = (float)jumpRiseSpeedInput.Value;
-                cameraDynamic.FallSpeed = (float)fallSpeedInput.Value;
+                // Коэффициенты передачи скорости при прыжке с динамических объектов
+                cameraDynamic.HorizontalVelocityTransferFactor = (float)horizontalVelocityTransferInput.Value;
+                cameraDynamic.VerticalVelocityTransferFactor = (float)verticalVelocityTransferInput.Value;
             }
 
             if (sceneState != null)
             {
+                // Гравитация влияет на скорость падения
                 sceneState.GravityStrength = (float)gravityInput.Value;
             }
         }
