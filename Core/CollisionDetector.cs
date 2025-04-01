@@ -238,8 +238,30 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                 // Нормализуем направление
                 direction = distance > 0 ? direction / distance : new Vector3(0, 1, 0);
 
-                collisionInfo.Normal = -direction; // От куба к сфере
-                collisionInfo.PenetrationDepth = radius - distance;
+                // Определяем, с какой гранью куба произошло столкновение
+                Vector3 normal = Vector3.Zero;
+                float penetrationDepth = radius - distance;
+
+                // Проверяем, с какой гранью произошло столкновение
+                if (MathF.Abs(closestPoint.X - cube.Position.X) > MathF.Abs(closestPoint.Y - cube.Position.Y) &&
+                    MathF.Abs(closestPoint.X - cube.Position.X) > MathF.Abs(closestPoint.Z - cube.Position.Z))
+                {
+                    // Столкновение с боковой гранью по X
+                    normal = new Vector3(MathF.Sign(closestPoint.X - cube.Position.X), 0, 0);
+                }
+                else if (MathF.Abs(closestPoint.Y - cube.Position.Y) > MathF.Abs(closestPoint.Z - cube.Position.Z))
+                {
+                    // Столкновение с верхней/нижней гранью
+                    normal = new Vector3(0, MathF.Sign(closestPoint.Y - cube.Position.Y), 0);
+                }
+                else
+                {
+                    // Столкновение с боковой гранью по Z
+                    normal = new Vector3(0, 0, MathF.Sign(closestPoint.Z - cube.Position.Z));
+                }
+
+                collisionInfo.Normal = normal;
+                collisionInfo.PenetrationDepth = penetrationDepth;
                 collisionInfo.ContactPoint = closestPoint;
 
                 return true;
@@ -331,79 +353,101 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             // Параметры призмы (прямоугольная основа и треугольные грани)
             Vector3 halfSize = prism.Scale * 0.5f;
             
-            // Вектор от призмы к сфере
+            // Создаем матрицу вращения призмы
+            Matrix4 prismRotation = Matrix4.CreateRotationX(MathHelper.DegreesToRadians(prism.Rotation.X)) *
+                                   Matrix4.CreateRotationY(MathHelper.DegreesToRadians(prism.Rotation.Y)) *
+                                   Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(prism.Rotation.Z));
+            
+            // Создаем обратную матрицу вращения для преобразования в локальное пространство призмы
+            Matrix4 inversePrismRotation = Matrix4.Invert(prismRotation);
+            
+            // Вектор от призмы к сфере в мировых координатах
             Vector3 prismToSphere = sphere.Position - prism.Position;
+            
+            // Преобразуем вектор в локальное пространство призмы
+            Vector3 localPrismToSphere = Vector3.TransformVector(prismToSphere, inversePrismRotation);
             
             // Проверка коллизии с основанием призмы (прямоугольная часть)
             
             // Сначала проверим вертикальные стенки призмы
             // Ограничиваем по XZ плоскости (основание призмы)
             Vector3 closestPointXZ = new Vector3(
-                MathHelper.Clamp(prismToSphere.X, -halfSize.X, halfSize.X),
+                MathHelper.Clamp(localPrismToSphere.X, -halfSize.X, halfSize.X),
                 0,
-                MathHelper.Clamp(prismToSphere.Z, -halfSize.Z, halfSize.Z)
+                MathHelper.Clamp(localPrismToSphere.Z, -halfSize.Z, halfSize.Z)
             );
             
             // Проверяем, находится ли сфера в пределах прямоугольного основания по XZ
-            bool insideRectBase = MathF.Abs(prismToSphere.X) <= halfSize.X && 
-                                  MathF.Abs(prismToSphere.Z) <= halfSize.Z;
+            bool insideRectBase = MathF.Abs(localPrismToSphere.X) <= halfSize.X && 
+                                  MathF.Abs(localPrismToSphere.Z) <= halfSize.Z;
             
             // Проверяем коллизию с нижней гранью (прямоугольник)
-            if (insideRectBase && prismToSphere.Y < 0 && MathF.Abs(prismToSphere.Y) < radius + halfSize.Y)
+            if (insideRectBase && localPrismToSphere.Y < 0 && MathF.Abs(localPrismToSphere.Y) < radius + halfSize.Y)
             {
                 // Коллизия с нижней гранью
-                collisionInfo.Normal = new Vector3(0, -1, 0);
-                collisionInfo.PenetrationDepth = radius + halfSize.Y - MathF.Abs(prismToSphere.Y);
-                collisionInfo.ContactPoint = new Vector3(
-                    sphere.Position.X,
-                    prism.Position.Y - halfSize.Y,
-                    sphere.Position.Z
+                Vector3 localNormal = new Vector3(0, -1, 0);
+                // Преобразуем нормаль обратно в мировые координаты
+                collisionInfo.Normal = Vector3.TransformVector(localNormal, prismRotation);
+                collisionInfo.PenetrationDepth = radius + halfSize.Y - MathF.Abs(localPrismToSphere.Y);
+                
+                // Точка контакта в локальных координатах
+                Vector3 localContactPoint = new Vector3(
+                    localPrismToSphere.X,
+                    -halfSize.Y,
+                    localPrismToSphere.Z
                 );
+                // Преобразуем точку контакта в мировые координаты
+                collisionInfo.ContactPoint = Vector3.TransformPosition(localContactPoint, prismRotation) + prism.Position;
                 return true;
             }
             
             // Проверяем коллизию с верхней наклонной гранью (треугольник)
-            if (insideRectBase && prismToSphere.Y > 0)
+            if (insideRectBase && localPrismToSphere.Y > 0)
             {
                 // Нормаль к верхней треугольной грани (направлена вверх под углом)
-                Vector3 topNormal = Vector3.Normalize(new Vector3(0, halfSize.Y, 0));
+                Vector3 localTopNormal = Vector3.Normalize(new Vector3(0, halfSize.Y, 0));
                 
                 // Расстояние от сферы до верхней грани по нормали
-                float distToTopFace = Vector3.Dot(prismToSphere, topNormal) - halfSize.Y;
+                float distToTopFace = Vector3.Dot(localPrismToSphere, localTopNormal) - halfSize.Y;
                 
                 // Если сфера достаточно близко к верхней грани
                 if (distToTopFace < radius)
                 {
-                    collisionInfo.Normal = topNormal;
+                    // Преобразуем нормаль в мировые координаты
+                    collisionInfo.Normal = Vector3.TransformVector(localTopNormal, prismRotation);
                     collisionInfo.PenetrationDepth = radius - distToTopFace;
-                    collisionInfo.ContactPoint = sphere.Position - topNormal * distToTopFace;
+                    
+                    // Точка контакта в локальных координатах
+                    Vector3 localContactPoint = localPrismToSphere - localTopNormal * distToTopFace;
+                    // Преобразуем точку контакта в мировые координаты
+                    collisionInfo.ContactPoint = Vector3.TransformPosition(localContactPoint, prismRotation) + prism.Position;
                     return true;
                 }
             }
             
             // Проверяем коллизию с боковыми гранями (четыре трапеции)
-            if (!insideRectBase || prismToSphere.Y > 0)
+            if (!insideRectBase || localPrismToSphere.Y > 0)
             {
                 // Определяем ближайшую точку на боковой грани
                 Vector3 closestPointOnSide = Vector3.Zero;
-                Vector3 sideNormal = Vector3.Zero;
+                Vector3 localSideNormal = Vector3.Zero;
                 float minDistance = float.MaxValue;
                 
                 // Проверяем каждую боковую грань
                 for (int side = 0; side < 4; side++)
                 {
-                    Vector3 edgeNormal;
+                    Vector3 localEdgeNormal;
                     float edgeHalfSize;
                     
                     // Выбираем параметры в зависимости от номера грани
                     if (side == 0 || side == 2) // X-грани
                     {
-                        edgeNormal = new Vector3(side == 0 ? -1 : 1, 0, 0);
+                        localEdgeNormal = new Vector3(side == 0 ? -1 : 1, 0, 0);
                         edgeHalfSize = halfSize.X;
                     }
                     else // Z-грани
                     {
-                        edgeNormal = new Vector3(0, 0, side == 1 ? 1 : -1);
+                        localEdgeNormal = new Vector3(0, 0, side == 1 ? 1 : -1);
                         edgeHalfSize = halfSize.Z;
                     }
                     
@@ -411,13 +455,13 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                     float distToEdge;
                     
                     if (side == 0) // -X грань
-                        distToEdge = -prismToSphere.X - halfSize.X;
+                        distToEdge = -localPrismToSphere.X - halfSize.X;
                     else if (side == 1) // +Z грань
-                        distToEdge = prismToSphere.Z - halfSize.Z;
+                        distToEdge = localPrismToSphere.Z - halfSize.Z;
                     else if (side == 2) // +X грань
-                        distToEdge = prismToSphere.X - halfSize.X;
+                        distToEdge = localPrismToSphere.X - halfSize.X;
                     else // -Z грань
-                        distToEdge = -prismToSphere.Z - halfSize.Z;
+                        distToEdge = -localPrismToSphere.Z - halfSize.Z;
                     
                     // Если сфера потенциально пересекает эту грань
                     if (distToEdge < radius)
@@ -426,39 +470,39 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                         bool withinEdgeBounds = false;
                         
                         if (side == 0 || side == 2) // X-грани, проверяем пределы по Z
-                            withinEdgeBounds = MathF.Abs(prismToSphere.Z) < halfSize.Z;
+                            withinEdgeBounds = MathF.Abs(localPrismToSphere.Z) < halfSize.Z;
                         else // Z-грани, проверяем пределы по X
-                            withinEdgeBounds = MathF.Abs(prismToSphere.X) < halfSize.X;
+                            withinEdgeBounds = MathF.Abs(localPrismToSphere.X) < halfSize.X;
                         
                         // Также проверяем, находится ли сфера в пределах высоты боковой грани
-                        withinEdgeBounds = withinEdgeBounds && prismToSphere.Y >= -halfSize.Y && 
-                                          prismToSphere.Y <= halfSize.Y;
+                        withinEdgeBounds = withinEdgeBounds && localPrismToSphere.Y >= -halfSize.Y && 
+                                          localPrismToSphere.Y <= halfSize.Y;
                         
                         if (withinEdgeBounds && MathF.Abs(distToEdge) < minDistance)
                         {
                             minDistance = MathF.Abs(distToEdge);
-                            sideNormal = edgeNormal;
+                            localSideNormal = localEdgeNormal;
                             
                             // Ближайшая точка на боковой грани
-                            closestPointOnSide = prism.Position;
+                            closestPointOnSide = Vector3.Zero;
                             
                             if (side == 0) // -X грань
-                                closestPointOnSide.X -= halfSize.X;
+                                closestPointOnSide.X = -halfSize.X;
                             else if (side == 1) // +Z грань
-                                closestPointOnSide.Z += halfSize.Z;
+                                closestPointOnSide.Z = halfSize.Z;
                             else if (side == 2) // +X грань
-                                closestPointOnSide.X += halfSize.X;
+                                closestPointOnSide.X = halfSize.X;
                             else // -Z грань
-                                closestPointOnSide.Z -= halfSize.Z;
+                                closestPointOnSide.Z = -halfSize.Z;
                             
                             if (side == 0 || side == 2) // X-грани
-                                closestPointOnSide.Z = sphere.Position.Z;
+                                closestPointOnSide.Z = localPrismToSphere.Z;
                             else // Z-грани
-                                closestPointOnSide.X = sphere.Position.X;
+                                closestPointOnSide.X = localPrismToSphere.X;
                             
-                            closestPointOnSide.Y = MathHelper.Clamp(sphere.Position.Y, 
-                                                                 prism.Position.Y - halfSize.Y,
-                                                                 prism.Position.Y + halfSize.Y);
+                            closestPointOnSide.Y = MathHelper.Clamp(localPrismToSphere.Y, 
+                                                                 -halfSize.Y,
+                                                                 halfSize.Y);
                         }
                     }
                 }
@@ -466,80 +510,27 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                 // Если нашли ближайшую боковую грань
                 if (minDistance < float.MaxValue && minDistance < radius)
                 {
-                    collisionInfo.Normal = -sideNormal; // От призмы к сфере
+                    // Преобразуем нормаль в мировые координаты
+                    collisionInfo.Normal = Vector3.TransformVector(-localSideNormal, prismRotation);
                     collisionInfo.PenetrationDepth = radius - minDistance;
-                    collisionInfo.ContactPoint = closestPointOnSide;
-                    return true;
-                }
-            }
-            
-            // Проверяем коллизию с рёбрами
-            if (!insideRectBase && prismToSphere.Y < 0)
-            {
-                // Проверяем четыре нижних ребра
-                Vector3 closestPoint = prism.Position - new Vector3(0, halfSize.Y, 0);
-                float minDistance = float.MaxValue;
-                
-                // Перебираем 4 ребра нижней грани
-                for (int edge = 0; edge < 4; edge++)
-                {
-                    Vector3 edgePoint = closestPoint;
                     
-                    // Координаты вершин нижней грани
-                    if (edge == 0) // нижняя левая задняя
-                    {
-                        edgePoint.X -= halfSize.X;
-                        edgePoint.Z -= halfSize.Z;
-                    }
-                    else if (edge == 1) // нижняя правая задняя
-                    {
-                        edgePoint.X += halfSize.X;
-                        edgePoint.Z -= halfSize.Z;
-                    }
-                    else if (edge == 2) // нижняя правая передняя
-                    {
-                        edgePoint.X += halfSize.X;
-                        edgePoint.Z += halfSize.Z;
-                    }
-                    else // нижняя левая передняя
-                    {
-                        edgePoint.X -= halfSize.X;
-                        edgePoint.Z += halfSize.Z;
-                    }
-                    
-                    float edgeDistance = (sphere.Position - edgePoint).Length;
-                    
-                    if (edgeDistance < minDistance)
-                    {
-                        minDistance = edgeDistance;
-                        closestPoint = edgePoint;
-                    }
-                }
-                
-                if (minDistance < radius)
-                {
-                    Vector3 edgeDirection = sphere.Position - closestPoint;
-                    float edgeToSphereDistance = edgeDirection.Length;
-                    edgeDirection = edgeToSphereDistance > 0 ? edgeDirection / edgeToSphereDistance : new Vector3(0, 1, 0);
-                    
-                    collisionInfo.Normal = -edgeDirection; // От призмы к сфере
-                    collisionInfo.PenetrationDepth = radius - minDistance;
-                    collisionInfo.ContactPoint = closestPoint;
+                    // Преобразуем точку контакта в мировые координаты
+                    collisionInfo.ContactPoint = Vector3.TransformPosition(closestPointOnSide, prismRotation) + prism.Position;
                     return true;
                 }
             }
             
             // Если все предыдущие проверки не дали результат,
             // используем упрощенный подход с bounding box
-            Vector3 closestPointBB = Vector3.Zero;
+            Vector3 localClosestPointBB = Vector3.Zero;
             
             // Ограничиваем по каждой оси
-            closestPointBB.X = MathHelper.Clamp(prismToSphere.X, -halfSize.X, halfSize.X);
-            closestPointBB.Y = MathHelper.Clamp(prismToSphere.Y, -halfSize.Y, halfSize.Y);
-            closestPointBB.Z = MathHelper.Clamp(prismToSphere.Z, -halfSize.Z, halfSize.Z);
+            localClosestPointBB.X = MathHelper.Clamp(localPrismToSphere.X, -halfSize.X, halfSize.X);
+            localClosestPointBB.Y = MathHelper.Clamp(localPrismToSphere.Y, -halfSize.Y, halfSize.Y);
+            localClosestPointBB.Z = MathHelper.Clamp(localPrismToSphere.Z, -halfSize.Z, halfSize.Z);
             
-            // Конвертируем обратно в мировые координаты
-            closestPointBB += prism.Position;
+            // Преобразуем точку в мировые координаты
+            Vector3 closestPointBB = Vector3.TransformPosition(localClosestPointBB, prismRotation) + prism.Position;
             
             // Проверяем расстояние между ближайшей точкой и центром сферы
             Vector3 direction = closestPointBB - sphere.Position;
@@ -593,6 +584,52 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         // Разрешение коллизии для конкретной пары объектов
         private static void ResolveCollision(CollisionInfo collision)
         {
+            var dynamicObject = collision.ObjectA;
+            var staticObject = collision.ObjectB;
+
+            // Проверяем, является ли первый объект динамическим
+            if (dynamicObject.SelfDynamic == null)
+            {
+                // Если первый объект статический, меняем объекты местами
+                dynamicObject = collision.ObjectB;
+                staticObject = collision.ObjectA;
+                collision.Normal = -collision.Normal;
+            }
+
+            var dynamicBody = dynamicObject.SelfDynamic;
+            
+            // Специальная обработка для сферы с кубом
+            if (dynamicObject is Sphere && (staticObject is Cube || staticObject is Sphere))
+            {
+                // Вычисляем нормаль от статического к динамическому объекту
+                Vector3 normal = -collision.Normal; // От статического к динамическому
+                
+                // Получаем текущую скорость
+                Vector3 velocity = dynamicBody.Velocity;
+                
+                // Проекция скорости на нормаль
+                float velocityProjection = Vector3.Dot(velocity, normal);
+                
+                // Если объект движется в направлении от статического объекта, игнорируем коллизию
+                if (velocityProjection > 0)
+                    return;
+                
+                // Коэффициент восстановления (упругости)
+                float restitution = 0.5f; // Уменьшаем упругость для более реалистичного поведения
+                
+                // Импульс = проекция скорости на нормаль с учетом коэффициента восстановления
+                Vector3 impulse = -(1 + restitution) * velocityProjection * (-normal);
+                
+                // Добавляем небольшой буфер для предотвращения застревания
+                float bufferFactor = 1.05f;
+                dynamicObject.Position += normal * collision.PenetrationDepth * bufferFactor;
+                
+                // Изменяем скорость в динамическом теле
+                dynamicBody.ApplyImpulse(impulse);
+                
+                return;
+            }
+
             // Обрабатываем только если у обоих объектов есть физика
             if (collision.ObjectA.SelfDynamic == null || collision.ObjectB.SelfDynamic == null)
             {
@@ -887,41 +924,140 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                 {
                     // Для призм используем упрощенный подход похожий на кубы
                     Vector3 halfSize = prism.Scale * 0.5f;
+                    
+                    // Создаем матрицу вращения призмы
+                    Matrix4 prismRotation = Matrix4.CreateRotationX(MathHelper.DegreesToRadians(prism.Rotation.X)) *
+                                           Matrix4.CreateRotationY(MathHelper.DegreesToRadians(prism.Rotation.Y)) *
+                                           Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(prism.Rotation.Z));
+                    
+                    // Создаем обратную матрицу вращения для преобразования в локальное пространство призмы
+                    Matrix4 inversePrismRotation = Matrix4.Invert(prismRotation);
+                    
+                    // Вектор от призмы к камере в мировых координатах
                     Vector3 prismToCamera = camera.Position - prism.Position;
                     
-                    // Проверяем, находится ли камера внутри призмы (упрощенно через bounding box)
-                    bool insideX = MathF.Abs(prismToCamera.X) < halfSize.X;
-                    bool insideY = MathF.Abs(prismToCamera.Y) < halfSize.Y;
-                    bool insideZ = MathF.Abs(prismToCamera.Z) < halfSize.Z;
+                    // Преобразуем вектор в локальное пространство призмы
+                    Vector3 localPrismToCamera = Vector3.TransformVector(prismToCamera, inversePrismRotation);
                     
-                    if (insideX && insideY && insideZ)
+                    // Проверяем, находится ли камера внутри призмы (упрощенно через bounding box)
+                    bool insideX = MathF.Abs(localPrismToCamera.X) < halfSize.X;
+                    bool insideY = MathF.Abs(localPrismToCamera.Y) < halfSize.Y;
+                    bool insideZ = MathF.Abs(localPrismToCamera.Z) < halfSize.Z;
+                    
+                    // Проверка на нахождение внутри нижней части призмы (прямоугольная часть)
+                    bool insideRectBase = insideX && insideZ && localPrismToCamera.Y < 0 && localPrismToCamera.Y > -halfSize.Y;
+                    
+                    // Проверка на нахождение внутри верхней части призмы (треугольная часть)
+                    bool insideTopPart = insideX && insideZ && localPrismToCamera.Y >= 0 && localPrismToCamera.Y <= halfSize.Y;
+                    
+                    // Расчет максимальной высоты в точке расположения камеры (для верхней треугольной части)
+                    float maxYAtPosition = 0;
+                    if (insideTopPart)
                     {
-                        // Если камера внутри призмы, находим ближайшую грань для выхода
-                        float distToXFace = MathF.Min(halfSize.X - MathF.Abs(prismToCamera.X), halfSize.X + MathF.Abs(prismToCamera.X));
-                        float distToYFace = MathF.Min(halfSize.Y - MathF.Abs(prismToCamera.Y), halfSize.Y + MathF.Abs(prismToCamera.Y));
-                        float distToZFace = MathF.Min(halfSize.Z - MathF.Abs(prismToCamera.Z), halfSize.Z + MathF.Abs(prismToCamera.Z));
+                        // Для простоты считаем, что верхняя часть имеет форму пирамиды
+                        float normalizedX = MathF.Abs(localPrismToCamera.X) / halfSize.X;
+                        float normalizedZ = MathF.Abs(localPrismToCamera.Z) / halfSize.Z;
                         
-                        if (distToXFace <= distToYFace && distToXFace <= distToZFace)
+                        // Линейная интерполяция высоты в зависимости от расстояния от центра
+                        maxYAtPosition = halfSize.Y * (1.0f - MathF.Max(normalizedX, normalizedZ));
+                    }
+                    
+                    // Определяем, находится ли камера внутри призмы
+                    bool insidePrism = insideRectBase || (insideTopPart && localPrismToCamera.Y < maxYAtPosition);
+                    
+                    if (insidePrism)
+                    {
+                        // Камера внутри призмы, находим ближайшую грань для выхода
+                        float distToXFace = halfSize.X - MathF.Abs(localPrismToCamera.X);
+                        float distToZFace = halfSize.Z - MathF.Abs(localPrismToCamera.Z);
+                        float distToBottomFace = halfSize.Y + localPrismToCamera.Y; // Расстояние до нижней грани
+                        
+                        // Расстояние до верхней наклонной грани
+                        float distToTopFace = float.MaxValue;
+                        Vector3 topNormal = Vector3.Zero;
+                        
+                        // Определяем радиус коллизии камеры один раз для всего метода
+                        float collisionRadius = (camera as Camera)?.CollisionRadius ?? 0.5f;
+                        
+                        if (localPrismToCamera.Y >= 0)
                         {
-                            pushDirection = new Vector3(prismToCamera.X > 0 ? 1 : -1, 0, 0);
-                            pushDistance = halfSize.X + cameraObj.CollisionRadius + 0.05f;
+                            // Для простоты: верхняя грань имеет нормаль с компонентами X и Z, 
+                            // направленными от центра к краям основания пирамиды
+                            float normalizedX = localPrismToCamera.X / halfSize.X;
+                            float normalizedZ = localPrismToCamera.Z / halfSize.Z;
+                            
+                            // Создаем нормаль к наклонной грани в точке над камерой
+                            topNormal = Vector3.Normalize(new Vector3(normalizedX, 0.5f, normalizedZ));
+                            
+                            // Расстояние до верхней грани (приблизительное)
+                            float currentMaxY = halfSize.Y * (1.0f - MathF.Max(normalizedX, normalizedZ));
+                            distToTopFace = currentMaxY - localPrismToCamera.Y;
                         }
-                        else if (distToYFace <= distToXFace && distToYFace <= distToZFace)
+                        
+                        Vector3 localNormal;
+                        float penetrationDepth;
+                        Vector3 localContactPoint;
+                        
+                        // Определяем ближайшую грань
+                        if (distToXFace <= distToZFace && distToXFace <= distToBottomFace && distToXFace <= distToTopFace)
                         {
-                            pushDirection = new Vector3(0, prismToCamera.Y > 0 ? 1 : -1, 0);
-                            pushDistance = halfSize.Y + cameraObj.CollisionRadius + 0.05f;
+                            // Ближайшая X-грань
+                            localNormal = new Vector3(localPrismToCamera.X > 0 ? 1 : -1, 0, 0);
+                            penetrationDepth = distToXFace + collisionRadius;
+                            localContactPoint = new Vector3(
+                                localPrismToCamera.X > 0 ? halfSize.X : -halfSize.X,
+                                localPrismToCamera.Y,
+                                localPrismToCamera.Z
+                            );
+                        }
+                        else if (distToZFace <= distToXFace && distToZFace <= distToBottomFace && distToZFace <= distToTopFace)
+                        {
+                            // Ближайшая Z-грань
+                            localNormal = new Vector3(0, 0, localPrismToCamera.Z > 0 ? 1 : -1);
+                            penetrationDepth = distToZFace + collisionRadius;
+                            localContactPoint = new Vector3(
+                                localPrismToCamera.X,
+                                localPrismToCamera.Y,
+                                localPrismToCamera.Z > 0 ? halfSize.Z : -halfSize.Z
+                            );
+                        }
+                        else if (distToBottomFace <= distToXFace && distToBottomFace <= distToZFace && distToBottomFace <= distToTopFace)
+                        {
+                            // Ближайшая нижняя грань
+                            localNormal = new Vector3(0, -1, 0);
+                            penetrationDepth = distToBottomFace + collisionRadius;
+                            localContactPoint = new Vector3(
+                                localPrismToCamera.X,
+                                -halfSize.Y,
+                                localPrismToCamera.Z
+                            );
                         }
                         else
                         {
-                            pushDirection = new Vector3(0, 0, prismToCamera.Z > 0 ? 1 : -1);
-                            pushDistance = halfSize.Z + cameraObj.CollisionRadius + 0.05f;
+                            // Ближайшая верхняя наклонная грань
+                            localNormal = topNormal;
+                            float currentMaxY = halfSize.Y * (1.0f - MathF.Max(
+                                MathF.Abs(localPrismToCamera.X) / halfSize.X,
+                                MathF.Abs(localPrismToCamera.Z) / halfSize.Z
+                            ));
+                            penetrationDepth = distToTopFace + collisionRadius;
+                            localContactPoint = new Vector3(
+                                localPrismToCamera.X,
+                                currentMaxY,
+                                localPrismToCamera.Z
+                            );
                         }
-                    }
-                    else
-                    {
-                        // Если камера снаружи, используем нормаль коллизии
-                        pushDirection = normal;
-                        pushDistance = collision.PenetrationDepth + 0.05f;
+                        
+                        // Преобразуем нормаль и точку контакта в мировые координаты
+                        Vector3 worldNormal = Vector3.TransformVector(localNormal, prismRotation);
+                        Vector3 worldContactPoint = Vector3.TransformPosition(localContactPoint, prismRotation) + prism.Position;
+                        
+                        // Применяем результаты к объекту collision
+                        collision.Normal = worldNormal;
+                        collision.PenetrationDepth = penetrationDepth;
+                        collision.ContactPoint = worldContactPoint;
+                        
+                        return;
                     }
                 }
                 else
@@ -932,9 +1068,68 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                 }
                 
                 // Проверка, стоит ли персонаж на объекте (нормаль направлена вниз)
-                bool isStandingOnObject = pushDirection.Y < -0.7f; // Если нормаль направлена вниз (с запасом)
+                Vector3 collisionNormal = collision.Normal;
+                float collisionPenetration = collision.PenetrationDepth;
                 
-                if (isStandingOnObject)
+                if (other is Sphere)
+                {
+                    // Для сфер не позволяем персонажу становиться на них
+                    // Вместо этого усиливаем эффект толкания
+                    float sphereRadius = 0.5f * MathF.Max(other.Scale.X, MathF.Max(other.Scale.Y, other.Scale.Z));
+                    float effectiveSphereRadius = sphereRadius * 1.2f;
+                    
+                    // Вычисляем вектор от центра сферы к персонажу
+                    Vector3 sphereToCamera = camera.Position - other.Position;
+                    float distance = sphereToCamera.Length;
+                    
+                    // Нормализуем направление
+                    Vector3 spherePushDirection = distance > 0 ? sphereToCamera / distance : new Vector3(0, 1, 0);
+                    
+                    // Устанавливаем позицию персонажа на безопасном расстоянии от сферы
+                    camera.Position = other.Position + spherePushDirection * (effectiveSphereRadius + cameraObj.CollisionRadius + 0.05f);
+                    
+                    // Если персонаж двигался в сторону сферы, применяем усиленный импульс
+                    float sphereImpactVelocity = Vector3.Dot(cameraBody._velocity, -spherePushDirection);
+                    if (sphereImpactVelocity > 0)
+                    {
+                        // Увеличиваем силу удара
+                        float kickForce = sphereImpactVelocity * 4.0f; // Увеличенный множитель силы удара
+                        
+                        // Добавляем дополнительный импульс в направлении движения персонажа
+                        Vector3 kickDirection = cameraBody._velocity;
+                        if (kickDirection.Length > 0)
+                        {
+                            kickDirection = kickDirection / kickDirection.Length;
+                        }
+                        Vector3 kickImpulse = kickDirection * kickForce;
+                        
+                        // Добавляем вертикальный компонент к импульсу, чтобы сфера подпрыгивала
+                        kickImpulse += new Vector3(0, kickForce * 0.5f, 0);
+                        
+                        // Применяем импульс к сфере
+                        otherBody.ApplyImpulse(kickImpulse);
+                        
+                        // Добавляем более сильный случайный вращательный момент
+                        float randomTorque = (float)new Random().NextDouble() * 1.0f - 0.5f;
+                        Vector3 randomAxis = new Vector3(
+                            (float)new Random().NextDouble() * 2 - 1,
+                            (float)new Random().NextDouble() * 2 - 1,
+                            (float)new Random().NextDouble() * 2 - 1
+                        );
+                        if (randomAxis.Length > 0)
+                        {
+                            randomAxis = randomAxis / randomAxis.Length;
+                        }
+                        otherBody.ApplyAngularImpulse(randomAxis * randomTorque);
+                        
+                        // Отталкиваем персонажа в противоположном направлении
+                        cameraBody._velocity -= spherePushDirection * sphereImpactVelocity * 0.5f;
+                    }
+                    
+                    return;
+                }
+                
+                if (collisionNormal.Y < -0.7f) // Если нормаль направлена вниз (с запасом)
                 {
                     // Персонаж стоит на объекте, корректируем его позицию вверх
                     // и делаем его "приземленным" в этом случае
@@ -964,24 +1159,45 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                 }
                 
                 // Если не стоим на объекте, выталкиваем камеру от объекта
-                camera.Position = other.Position + pushDirection * pushDistance;
+                camera.Position = other.Position + collisionNormal * (collisionPenetration + 0.05f);
                 
                 // Если персонаж двигался в сторону объекта, гасим его скорость в этом направлении
-                float velocityTowardsObject = Vector3.Dot(cameraBody._velocity, -pushDirection);
+                float velocityTowardsObject = Vector3.Dot(cameraBody._velocity, -collisionNormal);
                 if (velocityTowardsObject > 0)
                 {
-                    cameraBody._velocity -= -pushDirection * velocityTowardsObject;
-                }
-                
-                // Если объект движется в сторону персонажа, отталкиваем его
-                if (otherBody != null)
-                {
-                    float objectVelocityTowardsCamera = Vector3.Dot(otherBody._velocity, pushDirection);
-                    if (objectVelocityTowardsCamera > 0)
+                    // Применяем импульс к сфере при столкновении с персонажем
+                    if (other is Sphere)
                     {
-                        float repulsionFactor = 1.2f; // Усиленный отталкивающий фактор
-                        otherBody.ApplyImpulse(-pushDirection * objectVelocityTowardsCamera * repulsionFactor);
+                        // Вычисляем силу удара на основе скорости персонажа
+                        float kickForce = velocityTowardsObject * 2.0f; // Множитель силы удара
+                        
+                        // Добавляем дополнительный импульс в направлении движения персонажа
+                        Vector3 kickDirection = cameraBody._velocity;
+                        if (kickDirection.Length > 0)
+                        {
+                            kickDirection = kickDirection / kickDirection.Length;
+                        }
+                        Vector3 kickImpulse = kickDirection * kickForce;
+                        
+                        // Применяем импульс к сфере
+                        otherBody.ApplyImpulse(kickImpulse);
+                        
+                        // Добавляем небольшой случайный вращательный момент для более реалистичного поведения
+                        float randomTorque = (float)new Random().NextDouble() * 0.5f - 0.25f;
+                        Vector3 randomAxis = new Vector3(
+                            (float)new Random().NextDouble() * 2 - 1,
+                            (float)new Random().NextDouble() * 2 - 1,
+                            (float)new Random().NextDouble() * 2 - 1
+                        );
+                        if (randomAxis.Length > 0)
+                        {
+                            randomAxis = randomAxis / randomAxis.Length;
+                        }
+                        otherBody.ApplyAngularImpulse(randomAxis * randomTorque);
                     }
+                    
+                    // Гасим скорость персонажа в направлении объекта
+                    cameraBody._velocity -= collisionNormal * velocityTowardsObject;
                 }
                 
                 return;
@@ -1033,9 +1249,12 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             if (other is Sphere sphere)
             {
                 // Проверка камера-сфера (используем алгоритм сфера-сфера)
-                // Получаем радиус сферы
+                // Получаем радиус сферы с учетом масштаба
                 float sphereRadius = 0.5f * MathF.Max(sphere.Scale.X, MathF.Max(sphere.Scale.Y, sphere.Scale.Z));
-                float radiusSum = cameraRadius + sphereRadius;
+                
+                // Увеличиваем область коллизии сферы на 20% для более надежного определения столкновений
+                float effectiveSphereRadius = sphereRadius * 1.2f;
+                float radiusSum = cameraRadius + effectiveSphereRadius;
                 
                 // Вычисляем вектор между центрами
                 Vector3 direction = sphere.Position - camera.Position;
@@ -1047,7 +1266,20 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                     // Нормализуем направление
                     direction = distance > 0 ? direction / distance : new Vector3(0, 1, 0);
                     
-                    collisionInfo.Normal = direction;
+                    // Учитываем наклон поверхности сферы для более реалистичной коллизии
+                    Vector3 sphereSurfaceNormal = direction;
+                    
+                    // Если персонаж находится над сферой, усиливаем вертикальную составляющую нормали
+                    if (direction.Y > 0)
+                    {
+                        sphereSurfaceNormal = Vector3.Normalize(new Vector3(
+                            direction.X * 0.5f,
+                            direction.Y,
+                            direction.Z * 0.5f
+                        ));
+                    }
+                    
+                    collisionInfo.Normal = sphereSurfaceNormal;
                     collisionInfo.PenetrationDepth = radiusSum - distance;
                     collisionInfo.ContactPoint = camera.Position + direction * (cameraRadius - collisionInfo.PenetrationDepth * 0.5f);
                     
@@ -1133,112 +1365,138 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             {
                 // Проверка камера-призма с учетом возможности нахождения камеры внутри призмы
                 Vector3 halfSize = prism.Scale * 0.5f;
+                
+                // Создаем матрицу вращения призмы
+                Matrix4 prismRotation = Matrix4.CreateRotationX(MathHelper.DegreesToRadians(prism.Rotation.X)) *
+                                       Matrix4.CreateRotationY(MathHelper.DegreesToRadians(prism.Rotation.Y)) *
+                                       Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(prism.Rotation.Z));
+                
+                // Создаем обратную матрицу вращения для преобразования в локальное пространство призмы
+                Matrix4 inversePrismRotation = Matrix4.Invert(prismRotation);
+                
+                // Вектор от призмы к камере в мировых координатах
                 Vector3 prismToCamera = camera.Position - prism.Position;
                 
+                // Преобразуем вектор в локальное пространство призмы
+                Vector3 localPrismToCamera = Vector3.TransformVector(prismToCamera, inversePrismRotation);
+                
                 // Проверяем, находится ли камера внутри bounding box призмы
-                bool insideX = MathF.Abs(prismToCamera.X) < halfSize.X;
-                bool insideY = MathF.Abs(prismToCamera.Y) < halfSize.Y;
-                bool insideZ = MathF.Abs(prismToCamera.Z) < halfSize.Z;
+                bool insideX = MathF.Abs(localPrismToCamera.X) < halfSize.X;
+                bool insideY = MathF.Abs(localPrismToCamera.Y) < halfSize.Y;
+                bool insideZ = MathF.Abs(localPrismToCamera.Z) < halfSize.Z;
                 
                 // Проверка на нахождение внутри нижней части призмы (прямоугольная часть)
-                bool insideRectBase = insideX && insideZ && prismToCamera.Y < 0 && prismToCamera.Y > -halfSize.Y;
+                bool insideRectBase = insideX && insideZ && localPrismToCamera.Y < 0 && localPrismToCamera.Y > -halfSize.Y;
                 
                 // Проверка на нахождение внутри верхней части призмы (треугольная часть)
-                bool insideTopPart = insideX && insideZ && prismToCamera.Y >= 0 && prismToCamera.Y <= halfSize.Y;
+                bool insideTopPart = insideX && insideZ && localPrismToCamera.Y >= 0 && localPrismToCamera.Y <= halfSize.Y;
                 
                 // Расчет максимальной высоты в точке расположения камеры (для верхней треугольной части)
                 float maxYAtPosition = 0;
                 if (insideTopPart)
                 {
                     // Для простоты считаем, что верхняя часть имеет форму пирамиды
-                    float normalizedX = MathF.Abs(prismToCamera.X) / halfSize.X;
-                    float normalizedZ = MathF.Abs(prismToCamera.Z) / halfSize.Z;
+                    float normalizedX = MathF.Abs(localPrismToCamera.X) / halfSize.X;
+                    float normalizedZ = MathF.Abs(localPrismToCamera.Z) / halfSize.Z;
                     
                     // Линейная интерполяция высоты в зависимости от расстояния от центра
                     maxYAtPosition = halfSize.Y * (1.0f - MathF.Max(normalizedX, normalizedZ));
                 }
                 
                 // Определяем, находится ли камера внутри призмы
-                bool insidePrism = insideRectBase || (insideTopPart && prismToCamera.Y < maxYAtPosition);
+                bool insidePrism = insideRectBase || (insideTopPart && localPrismToCamera.Y < maxYAtPosition);
                 
                 if (insidePrism)
                 {
                     // Камера внутри призмы, находим ближайшую грань для выхода
-                    float distToXFace = halfSize.X - MathF.Abs(prismToCamera.X);
-                    float distToZFace = halfSize.Z - MathF.Abs(prismToCamera.Z);
-                    float distToBottomFace = halfSize.Y + prismToCamera.Y; // Расстояние до нижней грани
+                    float distToXFace = halfSize.X - MathF.Abs(localPrismToCamera.X);
+                    float distToZFace = halfSize.Z - MathF.Abs(localPrismToCamera.Z);
+                    float distToBottomFace = halfSize.Y + localPrismToCamera.Y; // Расстояние до нижней грани
                     
                     // Расстояние до верхней наклонной грани
                     float distToTopFace = float.MaxValue;
                     Vector3 topNormal = Vector3.Zero;
                     
-                    if (prismToCamera.Y >= 0)
+                    // Определяем радиус коллизии камеры один раз для всего метода
+                    float collisionRadius = (camera as Camera)?.CollisionRadius ?? 0.5f;
+                    
+                    if (localPrismToCamera.Y >= 0)
                     {
                         // Для простоты: верхняя грань имеет нормаль с компонентами X и Z, 
                         // направленными от центра к краям основания пирамиды
-                        float normalizedX = prismToCamera.X / halfSize.X;
-                        float normalizedZ = prismToCamera.Z / halfSize.Z;
+                        float normalizedX = localPrismToCamera.X / halfSize.X;
+                        float normalizedZ = localPrismToCamera.Z / halfSize.Z;
                         
                         // Создаем нормаль к наклонной грани в точке над камерой
                         topNormal = Vector3.Normalize(new Vector3(normalizedX, 0.5f, normalizedZ));
                         
                         // Расстояние до верхней грани (приблизительное)
-                        distToTopFace = maxYAtPosition - prismToCamera.Y;
+                        float currentMaxY = halfSize.Y * (1.0f - MathF.Max(normalizedX, normalizedZ));
+                        distToTopFace = currentMaxY - localPrismToCamera.Y;
                     }
                     
-                    Vector3 normal;
+                    Vector3 localNormal;
                     float penetrationDepth;
-                    Vector3 contactPoint;
+                    Vector3 localContactPoint;
                     
                     // Определяем ближайшую грань
                     if (distToXFace <= distToZFace && distToXFace <= distToBottomFace && distToXFace <= distToTopFace)
                     {
                         // Ближайшая X-грань
-                        normal = new Vector3(prismToCamera.X > 0 ? 1 : -1, 0, 0);
-                        penetrationDepth = distToXFace + cameraRadius;
-                        contactPoint = prism.Position + new Vector3(
-                            prismToCamera.X > 0 ? halfSize.X : -halfSize.X,
-                            prismToCamera.Y,
-                            prismToCamera.Z
+                        localNormal = new Vector3(localPrismToCamera.X > 0 ? 1 : -1, 0, 0);
+                        penetrationDepth = distToXFace + collisionRadius;
+                        localContactPoint = new Vector3(
+                            localPrismToCamera.X > 0 ? halfSize.X : -halfSize.X,
+                            localPrismToCamera.Y,
+                            localPrismToCamera.Z
                         );
                     }
                     else if (distToZFace <= distToXFace && distToZFace <= distToBottomFace && distToZFace <= distToTopFace)
                     {
                         // Ближайшая Z-грань
-                        normal = new Vector3(0, 0, prismToCamera.Z > 0 ? 1 : -1);
-                        penetrationDepth = distToZFace + cameraRadius;
-                        contactPoint = prism.Position + new Vector3(
-                            prismToCamera.X,
-                            prismToCamera.Y,
-                            prismToCamera.Z > 0 ? halfSize.Z : -halfSize.Z
+                        localNormal = new Vector3(0, 0, localPrismToCamera.Z > 0 ? 1 : -1);
+                        penetrationDepth = distToZFace + collisionRadius;
+                        localContactPoint = new Vector3(
+                            localPrismToCamera.X,
+                            localPrismToCamera.Y,
+                            localPrismToCamera.Z > 0 ? halfSize.Z : -halfSize.Z
                         );
                     }
                     else if (distToBottomFace <= distToXFace && distToBottomFace <= distToZFace && distToBottomFace <= distToTopFace)
                     {
                         // Ближайшая нижняя грань
-                        normal = new Vector3(0, -1, 0);
-                        penetrationDepth = distToBottomFace + cameraRadius;
-                        contactPoint = prism.Position + new Vector3(
-                            prismToCamera.X,
+                        localNormal = new Vector3(0, -1, 0);
+                        penetrationDepth = distToBottomFace + collisionRadius;
+                        localContactPoint = new Vector3(
+                            localPrismToCamera.X,
                             -halfSize.Y,
-                            prismToCamera.Z
+                            localPrismToCamera.Z
                         );
                     }
                     else
                     {
                         // Ближайшая верхняя наклонная грань
-                        normal = topNormal;
-                        penetrationDepth = distToTopFace + cameraRadius;
-                        contactPoint = prism.Position + new Vector3(
-                            prismToCamera.X,
-                            maxYAtPosition,
-                            prismToCamera.Z
+                        localNormal = topNormal;
+                        float currentMaxY = halfSize.Y * (1.0f - MathF.Max(
+                            MathF.Abs(localPrismToCamera.X) / halfSize.X,
+                            MathF.Abs(localPrismToCamera.Z) / halfSize.Z
+                        ));
+                        penetrationDepth = distToTopFace + collisionRadius;
+                        localContactPoint = new Vector3(
+                            localPrismToCamera.X,
+                            currentMaxY,
+                            localPrismToCamera.Z
                         );
                     }
                     
-                    collisionInfo.Normal = normal;
+                    // Преобразуем нормаль и точку контакта в мировые координаты
+                    Vector3 worldNormal = Vector3.TransformVector(localNormal, prismRotation);
+                    Vector3 worldContactPoint = Vector3.TransformPosition(localContactPoint, prismRotation) + prism.Position;
+                    
+                    // Применяем результаты к объекту collision
+                    collisionInfo.Normal = worldNormal;
                     collisionInfo.PenetrationDepth = penetrationDepth;
-                    collisionInfo.ContactPoint = contactPoint;
+                    collisionInfo.ContactPoint = worldContactPoint;
                     
                     return true;
                 }
@@ -1246,61 +1504,66 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                 // Если камера снаружи призмы, проверяем столкновение со всеми гранями
                 
                 // Проверка коллизии с нижней гранью
-                if (insideX && insideZ && prismToCamera.Y < -halfSize.Y && prismToCamera.Y > -halfSize.Y - cameraRadius)
+                if (insideX && insideZ && localPrismToCamera.Y < -halfSize.Y && localPrismToCamera.Y > -halfSize.Y - cameraRadius)
                 {
-                    collisionInfo.Normal = new Vector3(0, -1, 0);
-                    collisionInfo.PenetrationDepth = cameraRadius - MathF.Abs(prismToCamera.Y + halfSize.Y);
-                    collisionInfo.ContactPoint = new Vector3(
-                        camera.Position.X,
-                        prism.Position.Y - halfSize.Y,
-                        camera.Position.Z
-                    );
+                    Vector3 localNormal = new Vector3(0, -1, 0);
+                    collisionInfo.Normal = Vector3.TransformVector(localNormal, prismRotation);
+                    collisionInfo.PenetrationDepth = cameraRadius - MathF.Abs(localPrismToCamera.Y + halfSize.Y);
+                    collisionInfo.ContactPoint = Vector3.TransformPosition(new Vector3(
+                        localPrismToCamera.X,
+                        -halfSize.Y,
+                        localPrismToCamera.Z
+                    ), prismRotation) + prism.Position;
                     return true;
                 }
                 
                 // Проверка коллизии с верхними наклонными гранями
-                if (insideX && insideZ && prismToCamera.Y > 0 && prismToCamera.Y < halfSize.Y + cameraRadius)
+                if (insideX && insideZ && localPrismToCamera.Y > 0 && localPrismToCamera.Y < halfSize.Y + cameraRadius)
                 {
                     // Вычисляем нормаль к верхней грани в точке над камерой
-                    float normalizedX = prismToCamera.X / halfSize.X;
-                    float normalizedZ = prismToCamera.Z / halfSize.Z;
-                    Vector3 slopeNormal = Vector3.Normalize(new Vector3(normalizedX, 1.0f, normalizedZ));
+                    float normalizedX = localPrismToCamera.X / halfSize.X;
+                    float normalizedZ = localPrismToCamera.Z / halfSize.Z;
+                    Vector3 localSlopeNormal = Vector3.Normalize(new Vector3(normalizedX, 1.0f, normalizedZ));
                     
                     // Вычисляем расстояние до верхней грани по нормали
-                    float distToSlope = maxYAtPosition - prismToCamera.Y;
+                    float distToSlope = maxYAtPosition - localPrismToCamera.Y;
                     
                     if (distToSlope < cameraRadius)
                     {
-                        collisionInfo.Normal = slopeNormal;
+                        collisionInfo.Normal = Vector3.TransformVector(localSlopeNormal, prismRotation);
                         collisionInfo.PenetrationDepth = cameraRadius - distToSlope;
-                        collisionInfo.ContactPoint = camera.Position - slopeNormal * distToSlope;
+                        collisionInfo.ContactPoint = Vector3.TransformPosition(new Vector3(
+                            localPrismToCamera.X,
+                            maxYAtPosition,
+                            localPrismToCamera.Z
+                        ), prismRotation) + prism.Position;
                         return true;
                     }
                 }
                 
                 // Проверка коллизии с боковыми гранями
-                Vector3 closestPoint = Vector3.Zero;
+                Vector3 localClosestPoint = Vector3.Zero;
                 
                 // Ограничиваем точку по бокам призмы
-                closestPoint.X = MathHelper.Clamp(prismToCamera.X, -halfSize.X, halfSize.X);
-                closestPoint.Z = MathHelper.Clamp(prismToCamera.Z, -halfSize.Z, halfSize.Z);
+                localClosestPoint.X = MathHelper.Clamp(localPrismToCamera.X, -halfSize.X, halfSize.X);
+                localClosestPoint.Z = MathHelper.Clamp(localPrismToCamera.Z, -halfSize.Z, halfSize.Z);
                 
                 // Определяем, к какому треугольнику (верхнему или нижнему) ближе точка
-                if (prismToCamera.Y >= 0)
+                if (localPrismToCamera.Y >= 0)
                 {
                     // Для верхней части (треугольной)
-                    float normalizedX = MathF.Abs(closestPoint.X) / halfSize.X;
-                    float normalizedZ = MathF.Abs(closestPoint.Z) / halfSize.Z;
-                    closestPoint.Y = MathHelper.Clamp(prismToCamera.Y, 0, halfSize.Y * (1.0f - MathF.Max(normalizedX, normalizedZ)));
+                    float normalizedX = MathF.Abs(localClosestPoint.X) / halfSize.X;
+                    float normalizedZ = MathF.Abs(localClosestPoint.Z) / halfSize.Z;
+                    localClosestPoint.Y = MathHelper.Clamp(localPrismToCamera.Y, 0, halfSize.Y * (1.0f - MathF.Max(normalizedX, normalizedZ)));
                 }
                 else
                 {
                     // Для нижней части (прямоугольной)
-                    closestPoint.Y = MathHelper.Clamp(prismToCamera.Y, -halfSize.Y, 0);
+                    localClosestPoint.Y = MathHelper.Clamp(localPrismToCamera.Y, -halfSize.Y, 0);
                 }
                 
-                // Конвертируем обратно в мировые координаты
-                closestPoint += prism.Position;
+                // Преобразуем точку в мировые координаты
+                Vector3 closestPoint = Vector3.TransformPosition(localClosestPoint, prismRotation) + prism.Position;
                 
                 // Проверяем расстояние между ближайшей точкой и камерой
                 Vector3 direction = closestPoint - camera.Position;

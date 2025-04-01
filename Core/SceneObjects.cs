@@ -5,14 +5,22 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
 
     public class SceneObjects
     {
-        public float GravityStrength { get; set; } = 9.8f + 25.2f;
+        public float GravityStrength { get; set; } = 30f;
 
         // Состояние света
         public List<LightSettings> LightSettings { get; set; } = new List<LightSettings>
         {
             new LightSettings()
             {
-                Position = new Vector3(0, 140, -340)
+                Position = new Vector3(0, 140, -340),
+                AmbientIntensity = 10.0f,
+            },
+
+            // Звезды
+            new LightSettings()
+            {
+                Position = new Vector3(0, 100, 0),
+                AmbientIntensity = 150.0f,
             }
         };
 
@@ -33,7 +41,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             // Инициализация объектов
 
             // Метеорит
-            Objects.Add(new SceneObject
+            var meteorite = new SceneObject
             {
                 Name = "Метеорит",
                 Type = ObjectTypes.Sphere,
@@ -42,131 +50,362 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                 Rotation = new Vector3(0, 0, 0),
                 Scale = new Vector3(50f, 50f, 50f),
                 IsDynamic = false,
-            });
+            };
+            Objects.Add(meteorite);
 
+            // Добавляем анимацию вращения для метеорита
+            var meteoriteRotation = new RotationAnimation
+            {
+                Name = "MeteoriteRotation",
+                TargetObject = meteorite,
+                RotationSpeed = new Vector3(3, 2, 5)
+            };
+            meteoriteRotation.Start();
+            Animations.Add(meteoriteRotation);
+
+            // Поверхность Земли
             Objects.Add(new SceneObject
             {
-                Name = "Поверхность",
+                Name = "Поверхность Земли",
                 Type = ObjectTypes.Plane,
                 Texture = "textures/grass.jpg",
+                TextureRepeat = 1000.0f,
                 Position = new Vector3(0f, 0f, 0f),
                 Rotation = new Vector3(0, 0, 0),
-                Scale = new Vector3(100f, 1f, 100f), // Размер поля
+                Scale = new Vector3(10000f, 1f, 10000f),
                 IsDynamic = false,
             });
 
-            // Добавим несколько динамических объектов для демонстрации коллизий
+            // Футбольное поле
             Objects.Add(new SceneObject
             {
-                Name = "Динамический куб 1",
-                Type = ObjectTypes.Cube,
-                Texture = "textures/build.jpg",
-                Position = new Vector3(-1f, 1f, -2f),
+                Name = "Футбольное поле",
+                Type = ObjectTypes.Plane,
+                Texture = "textures/footballfield.jpg",
+                Position = new Vector3(0f, 0.1f, 0f),
+                Rotation = new Vector3(0, 90, 0),
+                Scale = new Vector3(120f, 1f, 60f),
+                IsDynamic = false,
+            });
+
+            // Перегородки (используем призмы)
+            Objects.Add(new SceneObject
+            {
+                Name = "Перегородка Левая",
+                Type = ObjectTypes.Prism,
+                Texture = "textures/tribuna.jpg",
+                Position = new Vector3(-30f, 1f, 0f),
+                Rotation = new Vector3(0, 0, 0),
+                Scale = new Vector3(1f, 5f, 120f),
+                IsDynamic = false,
+            });
+            Objects.Add(new SceneObject
+            {
+                Name = "Перегородка Правая",
+                Type = ObjectTypes.Prism,
+                Texture = "textures/tribuna.jpg",
+                Position = new Vector3(30f, 1f, 0f),
+                Rotation = new Vector3(0, 180, 0),
+                Scale = new Vector3(1f, 5f, 120f),
+                IsDynamic = false,
+            });
+            Objects.Add(new SceneObject
+            {
+                Name = "Перегородка Передняя",
+                Type = ObjectTypes.Prism,
+                Texture = "textures/tribuna.jpg",
+                Position = new Vector3(0f, 1f, -60f),
+                Rotation = new Vector3(0, 270, 0),
+                Scale = new Vector3(1f, 5f, 60f),
+                IsDynamic = false,
+            });
+            Objects.Add(new SceneObject
+            {
+                Name = "Перегородка Задняя",
+                Type = ObjectTypes.Prism,
+                Texture = "textures/tribuna.jpg",
+                Position = new Vector3(0f, 1f, 60f),
+                Rotation = new Vector3(0, 90, 0),
+                Scale = new Vector3(1f, 5f, 60f),
+                IsDynamic = false,
+            });
+
+            // Фрактальный объект
+            Objects.Add(new SceneObject
+            {
+                Name = "Фрактал",
+                Type = ObjectTypes.DiamondFractal,
+                Texture = "textures/abstract1.jpg",
+                Position = new Vector3(0f, 70f, 0),
                 Rotation = new Vector3(0, 0, 0),
                 Scale = new Vector3(3f, 3f, 3f),
                 IsDynamic = false,
             });
 
-            //Objects.Add(new SceneObject
-            //{
-            //    Name = "Динамический куб 3",
-            //    Type = ObjectTypes.Cube,
-            //    Texture = "textures/build.jpg",
-            //    Position = new Vector3(-10f, 20f, -20f),
-            //    Rotation = new Vector3(0, 0, 0),
-            //    Scale = new Vector3(7f,7f, 7f),
-            //    IsDynamic = true,
-            //});
-
+            // Здания
             Objects.Add(new SceneObject
             {
-                Name = "Динамический куб 2",
+                Name = "Здание Справа Даль",
                 Type = ObjectTypes.Cube,
                 Texture = "textures/build.jpg",
-                Position = new Vector3(10f, 15f, -20f),
+                TextureRepeat = 2.5f,
+                Position = new Vector3(150f, 45f, -70f),
                 Rotation = new Vector3(0, 0, 0),
-                Scale = new Vector3(5f, 5f, 5f),
-                IsDynamic = true,
+                Scale = new Vector3(50f, 90f, 100f),
+                IsDynamic = false,
             });
-
             Objects.Add(new SceneObject
             {
-                Name = "Динамическая сфера",
-                Type = ObjectTypes.Sphere,
-                Texture = "textures/meteorite.jpg",
-                Position = new Vector3(5f, 5f, -10f),
+                Name = "Здание Справа Середина",
+                Type = ObjectTypes.Cube,
+                Texture = "textures/build.jpg",
+                TextureRepeat = 1.5f,
+                Position = new Vector3(150.1f, 62.5f, -14f),
                 Rotation = new Vector3(0, 0, 0),
-                Scale = new Vector3(5f, 5f, 5f),
-                IsDynamic = true,
+                Scale = new Vector3(50f, 55f, 50f),
+                IsDynamic = false,
             });
-
-            // Трибуны (используем призмы)
             Objects.Add(new SceneObject
             {
-                Name = "Трибуна 1",
-                Type = ObjectTypes.Prism,
-                Texture = "textures/tribuna.jpg",
-                Position = new Vector3(-22f, 1f, 0f),
-                Rotation = new Vector3(0, 90, 0),
-                Scale = new Vector3(2f, 3f, 30f),
+                Name = "Здание Справа Близь",
+                Type = ObjectTypes.Cube,
+                Texture = "textures/build.jpg",
+                TextureRepeat = 2.5f,
+                Position = new Vector3(150f, 45f, 60f),
+                Rotation = new Vector3(0, 0, 0),
+                Scale = new Vector3(50f, 90f, 100f),
+                IsDynamic = false,
+            });
+            Objects.Add(new SceneObject
+            {
+                Name = "Здание Спереди Нач",
+                Type = ObjectTypes.Cube,
+                Texture = "textures/build.jpg",
+                TextureRepeat = 2.5f,
+                Position = new Vector3(131f, 45f, -180f),
+                Rotation = new Vector3(0, 0, 0),
+                Scale = new Vector3(90f, 90f, 50f),
+                IsDynamic = false,
+            });
+            Objects.Add(new SceneObject
+            {
+                Name = "Здание Спереди Середина",
+                Type = ObjectTypes.Cube,
+                Texture = "textures/build.jpg",
+                TextureRepeat = 1.5f,
+                Position = new Vector3(150.1f, 62.5f, -147f),
+                Rotation = new Vector3(0, 0, 0),
+                Scale = new Vector3(50f, 55f, 60f),
+                IsDynamic = false,
+            }); Objects.Add(new SceneObject
+            {
+                Name = "Здание Спереди Кон",
+                Type = ObjectTypes.Cube,
+                Texture = "textures/build.jpg",
+                TextureRepeat = 2.5f,
+                Position = new Vector3(191f, 45f, -180.1f),
+                Rotation = new Vector3(0, 0, 0),
+                Scale = new Vector3(90f, 90f, 50f),
+                IsDynamic = false,
+            });
+            Objects.Add(new SceneObject
+            {
+                Name = "Здание Слева Даль",
+                Type = ObjectTypes.Cube,
+                Texture = "textures/build.jpg",
+                TextureRepeat = 2.5f,
+                Position = new Vector3(-140f, 45f, -150f),
+                Rotation = new Vector3(0, 0, 0),
+                Scale = new Vector3(50f, 90f, 120f),
+                IsDynamic = false,
+            });
+            Objects.Add(new SceneObject
+            {
+                Name = "Здание Слева Середина",
+                Type = ObjectTypes.Cube,
+                Texture = "textures/build.jpg",
+                TextureRepeat = 2.5f,
+                Position = new Vector3(-140f, 45f, -30f),
+                Rotation = new Vector3(0, 180, 0),
+                Scale = new Vector3(50f, 90f, 120f),
+                IsDynamic = false,
+            });
+            Objects.Add(new SceneObject
+            {
+                Name = "Здание Слева Близь",
+                Type = ObjectTypes.Cube,
+                Texture = "textures/build.jpg",
+                TextureRepeat = 2.5f,
+                Position = new Vector3(-140f, 45f, 90f),
+                Rotation = new Vector3(0, 0, 0),
+                Scale = new Vector3(50f, 90f, 120f),
                 IsDynamic = false,
             });
 
+            //Школа
             Objects.Add(new SceneObject
             {
-                Name = "Трибуна 2",
-                Type = ObjectTypes.Prism,
-                Texture = "textures/tribuna.jpg", // Без текстуры
-                Position = new Vector3(22f, 1f, 0f),
+                Name = "Школа",
+                Type = ObjectTypes.Cube,
+                Texture = "textures/school.jpg",
+                TextureRepeat = 5f,
+                Position = new Vector3(0f, 30f, -300f),
+                Rotation = new Vector3(0, 0, 0),
+                Scale = new Vector3(150f, 60f, 50f),
+                IsDynamic = false,
+            });
+            Objects.Add(new SceneObject
+            {
+                Name = "Школа 1",
+                Type = ObjectTypes.Cube,
+                Texture = "textures/school1.jpg",
+                Position = new Vector3(0f, 25f, -260f),
+                Rotation = new Vector3(0, 0, 0),
+                Scale = new Vector3(40f, 4f, 30f),
+                IsDynamic = false,
+            });
+            Objects.Add(new SceneObject
+            {
+                Name = "Школа 2",
+                Type = ObjectTypes.Cube,
+                Texture = "textures/school1.jpg",
+                Position = new Vector3(-15f, 10f, -250f),
+                Rotation = new Vector3(0, 0, 0),
+                Scale = new Vector3(5f, 30f, 5f),
+                IsDynamic = false,
+            });
+            Objects.Add(new SceneObject
+            {
+                Name = "Школа 3",
+                Type = ObjectTypes.Cube,
+                Texture = "textures/school1.jpg",
+                Position = new Vector3(15f, 10f, -250f),
+                Rotation = new Vector3(0, 0, 0),
+                Scale = new Vector3(5f, 30f, 5f),
+                IsDynamic = false,
+            });
+            Objects.Add(new SceneObject
+            {
+                Name = "Школа 4",
+                Type = ObjectTypes.Cube,
+                Texture = "textures/abstract.jpg",
+                TextureRepeat = 5f,
+                Position = new Vector3(0f, 5f, -270f),
+                Rotation = new Vector3(0, 0, 0),
+                Scale = new Vector3(12f, 20f, 1f),
+                IsDynamic = false,
+            });
+
+            // Детский сад
+            Objects.Add(new SceneObject
+            {
+                Name = "Детский сад",
+                Type = ObjectTypes.Cube,
+                Texture = "textures/build2.jpg",
+                TextureRepeat = 2f,
+                Position = new Vector3(-20f, 25f, 250f),
+                Rotation = new Vector3(0, 0, 0),
+                Scale = new Vector3(100f, 50f, 55f),
+                IsDynamic = false,
+            });
+            Objects.Add(new SceneObject
+            {
+                Name = "Детский сад 1",
+                Type = ObjectTypes.Cube,
+                Texture = "textures/build2.jpg",
+                TextureRepeat = 2f,
+                Position = new Vector3(30f, 25f, 250.1f),
+                Rotation = new Vector3(0, 0, 0),
+                Scale = new Vector3(100f, 50f, 55f),
+                IsDynamic = false,
+            });
+            Objects.Add(new SceneObject
+            {
+                Name = "Детский сад 2",
+                Type = ObjectTypes.Cube,
+                Texture = "textures/build2.jpg",
+                TextureRepeat = 2f,
+                Position = new Vector3(80f, 25f, 250f),
+                Rotation = new Vector3(0, 0, 0),
+                Scale = new Vector3(100f, 50f, 55f),
+                IsDynamic = false,
+            });
+
+            // Офис
+            Objects.Add(new SceneObject
+            {
+                Name = "Офис",
+                Type = ObjectTypes.Cube,
+                Texture = "textures/build3.jpg",
+                TextureRepeat = 2f,
+                Position = new Vector3(-130f, 35f, 250.1f),
+                Rotation = new Vector3(0, 0, 0),
+                Scale = new Vector3(60f, 70f, 100f),
+                IsDynamic = false,
+            });
+
+            // Администрация
+            Objects.Add(new SceneObject
+            {
+                Name = "Администрация",
+                Type = ObjectTypes.Cube,
+                Texture = "textures/build4.jpg",
+                TextureRepeat = 2f,
+                Position = new Vector3(180f, 45f, 230f),
+                Rotation = new Vector3(0, 0, 0),
+                Scale = new Vector3(60f, 90f, 100f),
+                IsDynamic = false,
+            });
+
+            // Детали сцены
+            Objects.Add(new SceneObject
+            {
+                Name = "Портфель 1",
+                Type = ObjectTypes.Cube,
+                Texture = "textures/portfel.jpg",
+                Position = new Vector3(-27f, 1f, -55f),
                 Rotation = new Vector3(0, -90, 0),
-                Scale = new Vector3(2f, 3f, 30f),
-                IsDynamic = false,
+                Scale = new Vector3(3f, 0.8f, 2.5f),
+                IsDynamic = true,
             });
-
             Objects.Add(new SceneObject
             {
-                Name = "Трибуна 3",
-                Type = ObjectTypes.Prism,
-                Texture = "textures/tribuna.jpg", // Без текстуры
-                Position = new Vector3(0f, 1f, -32f),
+                Name = "Портфель 2",
+                Type = ObjectTypes.Cube,
+                Texture = "textures/portfel.jpg",
+                Position = new Vector3(-27f, 3f, -55f),
+                Rotation = new Vector3(-70, -90, 0),
+                Scale = new Vector3(3f, 0.8f, 2.5f),
+                IsDynamic = true,
+            });
+            Objects.Add(new SceneObject
+            {
+                Name = "Портфель 3",
+                Type = ObjectTypes.Cube,
+                Texture = "textures/portfel.jpg",
+                Position = new Vector3(-27f, 2f, -52.65f),
+                Rotation = new Vector3(-70, 180, 0),
+                Scale = new Vector3(3f, 0.8f, 2.5f),
+                IsDynamic = true,
+            });
+
+            // Добавляем футбольный мяч
+            Objects.Add(new SceneObject
+            {
+                Name = "Футбольный мяч",
+                Type = ObjectTypes.Sphere,
+                Texture = "textures/footballball.jpg",
+                Position = new Vector3(-3, 2f, -15),
                 Rotation = new Vector3(0, 0, 0),
-                Scale = new Vector3(20f, 3f, 2f),
-                IsDynamic = false,
+                Scale = new Vector3(1.8f, 1.8f, 1.8f),
+                IsDynamic = true,
             });
 
-            // Пятиэтажки (используем кубы)
-            for (int i = 0; i < 4; i++)
+            // Добавляем системы частиц для всех объектов в цикле
+            foreach (var obj in Objects)
             {
-                Objects.Add(new SceneObject
-                {
-                    Name = $"Пятиэтажка {i + 1}",
-                    Type = ObjectTypes.Cube,
-                    Texture = "textures/build.jpg",
-                    Position = new Vector3(
-                        (i % 2 == 0 ? -25f : 25f),
-                        7.5f,
-                        (i < 2 ? -40f : 40f)
-                    ),
-                    Rotation = new Vector3(0, 0, 0),
-                    Scale = new Vector3(8f, 15f, 8f),
-                    IsDynamic = false,
-                });
+                ParticleSystems.Add(new ParticleSystem(obj) { Name = obj.Name });
             }
-
-            // Add rotation animation for the meteorite
-            Animations.Add(new RotationAnimation
-            {
-                Name = "MeteoriteRotation",
-                TargetObject = Objects[0], // The meteorite is the first object
-                RotationSpeed = new Vector3(0, 30, 0) // Rotate 30 degrees per second around Y axis
-            });
-
-            // Add particle system for the meteorite
-            ParticleSystems.Add(new ParticleSystem(Objects[0])
-            {
-                Name = "MeteoriteParticles"
-            });
-
         }
         internal SceneObject GetObject(int index)
         {
@@ -184,21 +423,23 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         Cube,
         Sphere,
         Plane,
-        Prism
+        Prism,
+        DiamondFractal
     }
 
     // Класс для представления объектов на сцене
     public class SceneObject
     {
         public string Parent { get; set; }
-        public string? Texture { get; set; }  // Making Texture nullable
+        public string? Texture { get; set; }  // Делаем Texture nullable
+        public float TextureRepeat { get; set; } = 1.0f; // Коэффициент повторения текстуры
         public string Name { get; set; }
 
         public bool IsDynamic { get; set; }
 
         public ObjectTypes Type { get; set; }
         public Vector3 Position { get; set; }
-        public Vector3 Color { get; set; } = new Vector3(1f, 1f, 1f); // Default white color
+        public Vector3 Color { get; set; } = new Vector3(1f, 1f, 1f); // Цвет по умолчанию - белый
 
         public Vector3 AppliedForce { get; set; }
         public bool isForceApplied { get; set; }
@@ -206,7 +447,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         public Vector3 Rotation { get; set; }
         public Vector3 Scale { get; set; }
 
-        // Constructor to ensure force-related properties are initialized
+        // Конструктор для инициализации свойств, связанных с силой
         public SceneObject()
         {
             Position = Vector3.Zero;
@@ -218,19 +459,19 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
 
         internal void ApplyTranslation(Vector3 vector3)
         {
-            // For dynamic objects, we set a flag to apply force during the next sync
-            // We also update the position directly to ensure changes are visible immediately in the UI
+            // Для динамических объектов устанавливаем флаг для применения силы во время следующей синхронизации
+            // Также обновляем позицию напрямую, чтобы изменения были видны немедленно в интерфейсе
             if (IsDynamic)
             {
-                AppliedForce = vector3 * 50.0f; // Significantly increase force to make movement more noticeable
+                AppliedForce = vector3 * 50.0f; // Значительно увеличиваем силу, чтобы движение было более заметным
                 isForceApplied = true;
                 
-                // Also update position directly so UI changes appear immediately
+                // Также обновляем позицию напрямую, чтобы изменения в интерфейсе появлялись немедленно
                 Position += vector3;
             }
             else
             {
-                // For static objects, update position directly
+                // Для статических объектов обновляем позицию напрямую
                 Position += vector3;
             }
         }
@@ -269,34 +510,6 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             AttenuationB = 0.09f;
             AttenuationC = 0.032f;
             Color = new Color4(1.0f, 1.0f, 1.0f, 1.0f);
-        }
-
-        // Конструктор копирования для создания нового источника света с теми же параметрами
-        public LightSettings(LightSettings source)
-        {
-            Position = source.Position;
-            LookAt = source.LookAt;
-            AmbientIntensity = source.AmbientIntensity;
-            DiffuseIntensity = source.DiffuseIntensity;
-            SpecularIntensity = source.SpecularIntensity;
-            AttenuationA = source.AttenuationA;
-            AttenuationB = source.AttenuationB;
-            AttenuationC = source.AttenuationC;
-            Color = source.Color;
-        }
-
-        public void Update(Vector3 position, Vector3 lookAt, float ambient, float diffuse, float specular,
-                           float attA, float attB, float attC, Color4 color)
-        {
-            Position = position;
-            LookAt = lookAt;
-            AmbientIntensity = ambient;
-            DiffuseIntensity = diffuse;
-            SpecularIntensity = specular;
-            AttenuationA = attA;
-            AttenuationB = attB;
-            AttenuationC = attC;
-            Color = color;
         }
     }
 }

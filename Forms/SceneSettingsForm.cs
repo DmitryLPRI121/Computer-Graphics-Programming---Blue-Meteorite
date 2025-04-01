@@ -1,7 +1,3 @@
-using System;
-using System.Drawing;
-using System.Windows.Forms;
-
 namespace Computer_Graphics_Programming_Blue_Meteorite
 {
     public class SceneSettingsForm : Form
@@ -10,6 +6,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         private SceneObjects sceneState;
         private TabControl tabControl;
         private TrackBar timeOfDaySlider;
+        private TrackBar cycleSpeedSlider;
 
         public SceneSettingsForm(SceneSettings scene, SceneObjects sceneState)
         {
@@ -21,7 +18,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         private void InitializeComponent()
         {
             this.Text = "Scene Settings";
-            this.Size = new Size(400, 300);
+            this.Size = new Size(400, 400);
 
             tabControl = new TabControl();
             tabControl.Dock = DockStyle.Fill;
@@ -98,6 +95,43 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                 }
             };
             skyboxTab.Controls.Add(autoUpdateCheckbox);
+
+            // Cycle speed slider
+            Label cycleSpeedLabel = new Label();
+            cycleSpeedLabel.Text = "Cycle Speed (seconds):";
+            cycleSpeedLabel.Location = new Point(10, 150);
+            cycleSpeedLabel.AutoSize = true;
+            skyboxTab.Controls.Add(cycleSpeedLabel);
+
+            cycleSpeedSlider = new TrackBar();
+            cycleSpeedSlider.Location = new Point(10, 180);
+            cycleSpeedSlider.Width = 200;
+            cycleSpeedSlider.Minimum = 10;
+            cycleSpeedSlider.Maximum = 300;
+            cycleSpeedSlider.Value = 60; // Default to 60 seconds
+            cycleSpeedSlider.TickFrequency = 30;
+            cycleSpeedSlider.TickStyle = TickStyle.BottomRight;
+            cycleSpeedSlider.ValueChanged += (s, e) =>
+            {
+                if (scene != null)
+                {
+                    scene.skybox.SetCycleSpeed(cycleSpeedSlider.Value);
+                    scene.globalLight.SetCycleSpeed(cycleSpeedSlider.Value);
+                }
+            };
+            skyboxTab.Controls.Add(cycleSpeedSlider);
+
+            // Cycle speed value label
+            Label cycleSpeedValueLabel = new Label();
+            cycleSpeedValueLabel.Text = "60";
+            cycleSpeedValueLabel.Location = new Point(220, 180);
+            cycleSpeedValueLabel.AutoSize = true;
+            skyboxTab.Controls.Add(cycleSpeedValueLabel);
+
+            cycleSpeedSlider.ValueChanged += (s, e) =>
+            {
+                cycleSpeedValueLabel.Text = cycleSpeedSlider.Value.ToString();
+            };
 
             // Set initial state of the time of day slider
             timeOfDaySlider.Enabled = !sceneState.SkyboxAutoUpdate;

@@ -28,8 +28,13 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         private Vector3 right;
         private Vector3 worldUp;
 
+        // Делаем yaw и pitch публичными свойствами
         private float yaw;
         private float pitch;
+        
+        // Добавляем публичные свойства для доступа к углам
+        public float Yaw => yaw;
+        public float Pitch => pitch;
 
         public Vector3 Velocity => _velocity;
         public float Mass { get; set; } = 1.0f;
@@ -77,6 +82,14 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             _velocity += impulse / Mass;
         }
 
+        public void ApplyAngularImpulse(Vector3 angularImpulse)
+        {
+            // Применяем вращательный импульс к объекту
+            // Для простоты используем линейную скорость для создания эффекта вращения
+            float rotationFactor = 0.5f; // Коэффициент для настройки силы вращения
+            _velocity += angularImpulse * rotationFactor;
+        }
+
         public void ProcessKeyboard(CameraMovement direction, float deltaTime)
         {
             Vector3 frontProject = new Vector3(front.X, 0, front.Z).Normalized();
@@ -117,46 +130,46 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
 
         public void ApplyGravity(float gravityForce, float deltaTime)
         {
-            // Apply gravity as an acceleration change
+            // Применяем гравитацию как изменение ускорения
             if (!IsGrounded)
             {
-                // Apply gravity even if we're moving upward, to simulate real-world physics
+                // Применяем гравитацию даже если мы движемся вверх, чтобы симулировать реальную физику
                 _acceleration.Y -= gravityForce * Mass;
                 
-                // Make sure we have some minimum velocity applied so gravity is noticeable
-                // This prevents objects from getting "stuck" in the air
+                // Убеждаемся, что у нас есть минимальная скорость, чтобы гравитация была заметна
+                // Это предотвращает "застревание" объектов в воздухе
                 if (Math.Abs(_velocity.Y) < 0.001f)
                 {
-                    _velocity.Y = -0.01f; // Small initial downward velocity
+                    _velocity.Y = -0.01f; // Небольшая начальная скорость вниз
                 }
             }
             else
             {
-                // When grounded, ensure vertical velocity is zero
+                // Когда объект на земле, обеспечиваем нулевую вертикальную скорость
                 _velocity.Y = 0;
             }
         }
 
         public void ApplyForce(Vector3 force, float deltaTime)
         {
-            // Calculate force magnitude
+            // Вычисляем величину силы
             float magnitude = force.Length;
             
-            // Direct velocity modification for immediate response
-            if (magnitude > 10.0f) // For large forces from UI
+            // Прямое изменение скорости для немедленной реакции
+            if (magnitude > 10.0f) // Для больших сил от пользовательского интерфейса
             {
-                // Apply larger immediate velocity change for strong forces (from UI)
+                // Применяем большее немедленное изменение скорости для сильных сил (от UI)
                 Vector3 direction = force.Normalized();
                 _velocity = direction * magnitude * 0.1f;
                 
-                // Also add to acceleration for continued movement
+                // Также добавляем к ускорению для продолжения движения
                 _acceleration += force / Mass;
             }
-            else // For smaller gameplay forces
+            else // Для меньших игровых сил
             {
-                // Standard force application for regular gameplay
+                // Стандартное применение силы для обычного геймплея
                 _velocity += force * deltaTime * 0.5f;
-            _acceleration += force / Mass;
+                _acceleration += force / Mass;
             }
         }
 
@@ -406,6 +419,23 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             front = Vector3.Normalize(tempFront);
             right = Vector3.Normalize(Vector3.Cross(front, worldUp));
             up = Vector3.Normalize(Vector3.Cross(right, front));
+        }
+
+        // Добавляем метод для восстановления углов поворота
+        public void RestoreRotation(float newYaw, float newPitch, bool constrainPitch = true)
+        {
+            yaw = newYaw;
+            pitch = newPitch;
+            
+            if (constrainPitch)
+            {
+                if (pitch > 89.0f)
+                    pitch = 89.0f;
+                if (pitch < -89.0f)
+                    pitch = -89.0f;
+            }
+            
+            UpdateVectors();
         }
     }
 }

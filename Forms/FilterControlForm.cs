@@ -11,6 +11,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite.Forms
         private BlurFilter blurFilter;
         private PixelizedFilter pixelizedFilter;
         private NightVisionFilter nightVisionFilter;
+        private SharpnessFilter sharpnessFilter;
         private ComboBox filterComboBox;
         private TrackBar blurStrengthTrackBar;
         private Label blurStrengthLabel;
@@ -18,8 +19,10 @@ namespace Computer_Graphics_Programming_Blue_Meteorite.Forms
         private Label pixelSizeLabel;
         private TrackBar noiseStrengthTrackBar;
         private Label noiseStrengthLabel;
+        private TrackBar sharpnessStrengthTrackBar;
+        private Label sharpnessStrengthLabel;
 
-        public FilterControlForm(GrayscaleFilter grayscaleFilter, SepiaFilter sepiaFilter, BlurFilter blurFilter, PixelizedFilter pixelizedFilter, NightVisionFilter nightVisionFilter)
+        public FilterControlForm(GrayscaleFilter grayscaleFilter, SepiaFilter sepiaFilter, BlurFilter blurFilter, PixelizedFilter pixelizedFilter, NightVisionFilter nightVisionFilter, SharpnessFilter sharpnessFilter)
         {
             InitializeComponent();
             this.grayscaleFilter = grayscaleFilter;
@@ -27,6 +30,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite.Forms
             this.blurFilter = blurFilter;
             this.pixelizedFilter = pixelizedFilter;
             this.nightVisionFilter = nightVisionFilter;
+            this.sharpnessFilter = sharpnessFilter;
             InitializeControls();
         }
 
@@ -49,10 +53,12 @@ namespace Computer_Graphics_Programming_Blue_Meteorite.Forms
             };
 
             // Add filter options
-            filterComboBox.Items.AddRange(new string[] { "Standard", "Grayscale", "Sepia", "Blur", "Pixelized", "Night Vision" });
+            filterComboBox.Items.AddRange(new string[] { "Standard", "Grayscale", "Sepia", "Blur", "Pixelized", "Night Vision", "Sharpness" });
             
             // Set initial selection based on enabled filters
-            if (nightVisionFilter.IsEnabled)
+            if (sharpnessFilter.IsEnabled)
+                filterComboBox.SelectedIndex = 6;
+            else if (nightVisionFilter.IsEnabled)
                 filterComboBox.SelectedIndex = 5;
             else if (pixelizedFilter.IsEnabled)
                 filterComboBox.SelectedIndex = 4;
@@ -122,6 +128,25 @@ namespace Computer_Graphics_Programming_Blue_Meteorite.Forms
                 Visible = false
             };
 
+            // Create sharpness strength controls
+            sharpnessStrengthLabel = new Label
+            {
+                Text = "Sharpness Strength:",
+                Location = new System.Drawing.Point(20, 90),
+                AutoSize = true,
+                Visible = false
+            };
+
+            sharpnessStrengthTrackBar = new TrackBar
+            {
+                Location = new System.Drawing.Point(20, 120),
+                Size = new System.Drawing.Size(200, 45),
+                Minimum = 1,
+                Maximum = 10,
+                Value = (int)(sharpnessFilter.SharpnessStrength * 5),
+                Visible = false
+            };
+
             // Add event handlers
             filterComboBox.SelectedIndexChanged += (sender, e) =>
             {
@@ -130,11 +155,13 @@ namespace Computer_Graphics_Programming_Blue_Meteorite.Forms
                 blurFilter.IsEnabled = filterComboBox.SelectedIndex == 3;
                 pixelizedFilter.IsEnabled = filterComboBox.SelectedIndex == 4;
                 nightVisionFilter.IsEnabled = filterComboBox.SelectedIndex == 5;
+                sharpnessFilter.IsEnabled = filterComboBox.SelectedIndex == 6;
 
                 // Show/hide controls based on selected filter
                 bool showBlurControls = filterComboBox.SelectedIndex == 3;
                 bool showPixelControls = filterComboBox.SelectedIndex == 4;
                 bool showNoiseControls = filterComboBox.SelectedIndex == 5;
+                bool showSharpnessControls = filterComboBox.SelectedIndex == 6;
 
                 blurStrengthLabel.Visible = showBlurControls;
                 blurStrengthTrackBar.Visible = showBlurControls;
@@ -142,6 +169,8 @@ namespace Computer_Graphics_Programming_Blue_Meteorite.Forms
                 pixelSizeTrackBar.Visible = showPixelControls;
                 noiseStrengthLabel.Visible = showNoiseControls;
                 noiseStrengthTrackBar.Visible = showNoiseControls;
+                sharpnessStrengthLabel.Visible = showSharpnessControls;
+                sharpnessStrengthTrackBar.Visible = showSharpnessControls;
             };
 
             blurStrengthTrackBar.ValueChanged += (sender, e) =>
@@ -159,6 +188,11 @@ namespace Computer_Graphics_Programming_Blue_Meteorite.Forms
                 nightVisionFilter.NoiseStrength = noiseStrengthTrackBar.Value / 10.0f;
             };
 
+            sharpnessStrengthTrackBar.ValueChanged += (sender, e) =>
+            {
+                sharpnessFilter.SharpnessStrength = sharpnessStrengthTrackBar.Value / 5.0f;
+            };
+
             // Add controls to form
             this.Controls.AddRange(new Control[] { 
                 filterLabel, 
@@ -168,7 +202,9 @@ namespace Computer_Graphics_Programming_Blue_Meteorite.Forms
                 pixelSizeLabel,
                 pixelSizeTrackBar,
                 noiseStrengthLabel,
-                noiseStrengthTrackBar
+                noiseStrengthTrackBar,
+                sharpnessStrengthLabel,
+                sharpnessStrengthTrackBar
             });
 
             // Update form size

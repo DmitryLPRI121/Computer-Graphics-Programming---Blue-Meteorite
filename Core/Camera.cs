@@ -4,11 +4,10 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
 { 
     public class Camera : TransformableObject
     {
-        private readonly float CAMERA_FLOOR = 1.0f;
         private DynamicBody dynamicBody;
         
         // Добавляем свойство для радиуса коллизии камеры
-        public float CollisionRadius { get; set; } = 1.0f;
+        public float CollisionRadius { get; set; } = 2.65f;
 
         public float MovementSpeed
         {

@@ -7,10 +7,13 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
     {
         public int Handle;
         TextureUnit currentUnit;
-        public Texture(string? path)
+        public float RepeatCount { get; private set; }
+        
+        public Texture(string? path, float repeatCount = 1.0f)
         {
             Handle = GL.GenTexture();
             GL.BindTexture(TextureTarget.Texture2D, Handle);
+            RepeatCount = repeatCount;
 
             // Настройка параметров текстуры
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.Repeat);

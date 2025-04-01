@@ -219,6 +219,8 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                 {
                     UpdateAnimationsList();
                     addAnimationBtn.Enabled = true;
+                    selectedAnimation = null;
+                    UpdateParameterPanel();
                 }
             }
         }
@@ -226,22 +228,42 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         private void UpdateAnimationsList()
         {
             animBox.Items.Clear();
-            foreach (var anim in sceneState.Animations.Where(a => a.TargetObject == selectedObject))
+            if (selectedObject != null)
             {
-                animBox.Items.Add(anim.Name);
+                foreach (var anim in sceneState.Animations.Where(a => a.TargetObject == selectedObject))
+                {
+                    animBox.Items.Add(anim.Name);
+                }
+            }
+        }
+
+        private void UpdateButtonStates()
+        {
+            if (selectedAnimation != null)
+            {
+                animStartBtn.Enabled = selectedAnimation.IsFinished;
+                animStopBtn.Enabled = !selectedAnimation.IsFinished;
+                removeAnimationBtn.Enabled = true;
+            }
+            else
+            {
+                animStartBtn.Enabled = false;
+                animStopBtn.Enabled = false;
+                removeAnimationBtn.Enabled = false;
             }
         }
 
         private void animBox_SelectedIndexChanged(object sender, EventArgs e)
         {
-            lock (sceneState)
+            if (animBox.SelectedItem != null && selectedObject != null)
             {
-                if (animBox.SelectedIndex >= 0 && animBox.SelectedIndex < sceneState.Animations.Count)
+                selectedAnimation = sceneState.Animations.FirstOrDefault(a => 
+                    a.TargetObject == selectedObject && 
+                    a.Name.Equals(animBox.SelectedItem.ToString()));
+                    
+                if (selectedAnimation != null)
                 {
-                    selectedAnimation = sceneState.GetAnimation(animBox.SelectedIndex);
-                    animStartBtn.Enabled = true;
-                    animStopBtn.Enabled = false;
-                    removeAnimationBtn.Enabled = true;
+                    UpdateButtonStates();
                     UpdateParameterPanel();
                 }
             }
@@ -249,7 +271,10 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
 
         private void animationTypeCombo_SelectedIndexChanged(object sender, EventArgs e)
         {
-            UpdateParameterPanel();
+            if (animationTypeCombo.SelectedItem != null)
+            {
+                UpdateParameterPanel();
+            }
         }
 
         private void UpdateParameterPanel()
@@ -266,22 +291,34 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             switch (animType)
             {
                 case "RotationAnimation":
-                    AddVector3Controls("Rotation Speed", yOffset, (anim) => ((RotationAnimation)anim).RotationSpeed, 
+                    AddVector3Controls("Rotation Speed", yOffset, 
+                        (anim) => ((RotationAnimation)anim).RotationSpeed,
                         (anim, value) => ((RotationAnimation)anim).RotationSpeed = value);
                     break;
                 case "ScaleAnimation":
-                    AddVector3Controls("Scale Speed", yOffset, (anim) => ((ScaleAnimation)anim).ScaleSpeed,
+                    AddVector3Controls("Scale Speed", yOffset, 
+                        (anim) => ((ScaleAnimation)anim).ScaleSpeed,
                         (anim, value) => ((ScaleAnimation)anim).ScaleSpeed = value);
-                    AddVector3Controls("Min Scale", yOffset + 100, (anim) => ((ScaleAnimation)anim).MinScale,
+                    AddVector3Controls("Min Scale", yOffset + 100, 
+                        (anim) => ((ScaleAnimation)anim).MinScale,
                         (anim, value) => ((ScaleAnimation)anim).MinScale = value);
-                    AddVector3Controls("Max Scale", yOffset + 200, (anim) => ((ScaleAnimation)anim).MaxScale,
+                    AddVector3Controls("Max Scale", yOffset + 200, 
+                        (anim) => ((ScaleAnimation)anim).MaxScale,
                         (anim, value) => ((ScaleAnimation)anim).MaxScale = value);
                     break;
                 case "TranslationAnimation":
-                    AddVector3Controls("Movement Speed", yOffset, (anim) => ((TranslationAnimation)anim).MovementSpeed,
+                    AddVector3Controls("Movement Speed", yOffset, 
+                        (anim) => ((TranslationAnimation)anim).MovementSpeed,
                         (anim, value) => ((TranslationAnimation)anim).MovementSpeed = value);
-                    AddVector3Controls("End Position", yOffset + 100, (anim) => ((TranslationAnimation)anim).EndPosition,
+                    AddVector3Controls("End Position", yOffset + 100, 
+                        (anim) => ((TranslationAnimation)anim).EndPosition,
                         (anim, value) => ((TranslationAnimation)anim).EndPosition = value);
+                    AddVector3Controls("Up Acceleration", yOffset + 200, 
+                        (anim) => ((TranslationAnimation)anim).UpAcceleration,
+                        (anim, value) => ((TranslationAnimation)anim).UpAcceleration = value);
+                    AddVector3Controls("Down Acceleration", yOffset + 300, 
+                        (anim) => ((TranslationAnimation)anim).DownAcceleration,
+                        (anim, value) => ((TranslationAnimation)anim).DownAcceleration = value);
                     break;
             }
         }
@@ -394,7 +431,9 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                         Name = $"Translation_{selectedObject.Name}",
                         TargetObject = selectedObject,
                         MovementSpeed = new Vector3(1, 1, 1),
-                        EndPosition = selectedObject.Position + new Vector3(5, 0, 0)
+                        EndPosition = selectedObject.Position + new Vector3(5, 0, 0),
+                        UpAcceleration = new Vector3(0, 2, 0),
+                        DownAcceleration = new Vector3(0, -1, 0)
                     };
                     break;
             }
@@ -404,7 +443,9 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                 sceneState.Animations.Add(newAnimation);
                 UpdateAnimationsList();
                 selectedAnimation = newAnimation;
+                selectedAnimation.Stop();
                 UpdateParameterPanel();
+                UpdateButtonStates();
             }
         }
 
@@ -416,7 +457,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                 UpdateAnimationsList();
                 selectedAnimation = null;
                 UpdateParameterPanel();
-                removeAnimationBtn.Enabled = false;
+                UpdateButtonStates();
             }
         }
 
@@ -427,8 +468,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                 if (selectedAnimation != null)
                 {
                     selectedAnimation.Start();
-                    animStartBtn.Enabled = false;
-                    animStopBtn.Enabled = true;
+                    UpdateButtonStates();
                 }
             }
         }
@@ -438,8 +478,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             if (selectedAnimation != null)
             {
                 selectedAnimation.Stop();
-                animStartBtn.Enabled = true;
-                animStopBtn.Enabled = false;
+                UpdateButtonStates();
             }
         }
     }

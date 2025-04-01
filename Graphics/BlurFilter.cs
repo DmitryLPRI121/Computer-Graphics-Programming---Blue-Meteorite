@@ -98,7 +98,6 @@ namespace Computer_Graphics_Programming_Blue_Meteorite.Graphics
         private void InitializeQuad()
         {
             float[] quadVertices = {
-                // positions        // texture Coords
                 -1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
                 -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
                  1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
@@ -128,20 +127,18 @@ namespace Computer_Graphics_Programming_Blue_Meteorite.Graphics
             GL.ActiveTexture(TextureUnit.Texture0);
             GL.BindTexture(TextureTarget.Texture2D, screenTexture);
 
-            // Set uniforms
             int blurStrengthLoc = GL.GetUniformLocation(shaderProgram, "blurStrength");
             int screenSizeLoc = GL.GetUniformLocation(shaderProgram, "screenSize");
             int horizontalLoc = GL.GetUniformLocation(shaderProgram, "horizontal");
 
             GL.Uniform1(blurStrengthLoc, blurStrength);
             GL.Uniform2(screenSizeLoc, screenSize);
-            GL.Uniform1(horizontalLoc, 1); // First pass - horizontal blur
+            GL.Uniform1(horizontalLoc, 1);
 
             GL.BindVertexArray(quadVAO);
             GL.DrawArrays(PrimitiveType.TriangleStrip, 0, 4);
             GL.BindVertexArray(0);
 
-            // Second pass - vertical blur
             GL.Uniform1(horizontalLoc, 0);
             GL.DrawArrays(PrimitiveType.TriangleStrip, 0, 4);
         }

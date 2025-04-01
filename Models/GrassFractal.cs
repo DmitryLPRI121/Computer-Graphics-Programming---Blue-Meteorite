@@ -1,7 +1,5 @@
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
-using System;
-using System.Collections.Generic;
 
 namespace Computer_Graphics_Programming_Blue_Meteorite
 {
@@ -17,14 +15,16 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         private float baseWidth; // базовая ширина стебля
         private float randomFactor; // фактор случайности для естественности
         private int grassCount; // количество травинок
+        private float areaSize; // размер области для генерации травы
 
-        public GrassFractal(string texturePath, int depth = 3, float baseHeight = 1000.4f, float baseWidth = 0.05f, float randomFactor = 0.3f, int grassCount = 100)
+        public GrassFractal(string texturePath, int depth = 3, float baseHeight = 1000.4f, float baseWidth = 0.05f, float randomFactor = 0.3f, int grassCount = 100, float areaSize = 20.0f)
         {
             this.depth = depth;
             this.baseHeight = baseHeight;
             this.baseWidth = baseWidth;
             this.randomFactor = randomFactor;
             this.grassCount = grassCount;
+            this.areaSize = areaSize;
 
             GenerateFractalGrass();
             InitializeBuffers();
@@ -41,9 +41,9 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
 
             for (int i = 0; i < grassCount; i++)
             {
-                // Случайная позиция травинки по X и Z со значительно увеличенным диапазоном
-                float posX = (float)(random.NextDouble() * 40 - 20); // От -20 до 20
-                float posZ = (float)(random.NextDouble() * 40 - 20); // От -20 до 20
+                // Случайная позиция травинки по X и Z в пределах заданной области
+                float posX = (float)(random.NextDouble() * areaSize * 2 - areaSize); // От -areaSize до areaSize
+                float posZ = (float)(random.NextDouble() * areaSize * 2 - areaSize); // От -areaSize до areaSize
 
                 // Случайные вариации высоты и ширины для каждой травинки
                 float height = baseHeight * (0.7f + (float)random.NextDouble() * randomFactor);

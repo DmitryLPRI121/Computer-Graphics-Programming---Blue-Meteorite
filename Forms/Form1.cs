@@ -1,8 +1,4 @@
-﻿using OpenTK.Mathematics;
-using System;
-using System.Drawing;
-using System.Windows.Forms;
-using Computer_Graphics_Programming_Blue_Meteorite.Graphics;
+﻿using Computer_Graphics_Programming_Blue_Meteorite.Graphics;
 using Computer_Graphics_Programming_Blue_Meteorite.Forms;
 
 namespace Computer_Graphics_Programming_Blue_Meteorite
@@ -23,8 +19,9 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         private BlurFilter blurFilter;
         private PixelizedFilter pixelizedFilter;
         private NightVisionFilter nightVisionFilter;
+        private SharpnessFilter sharpnessFilter;
 
-        public Form1(SceneObjects state, SceneSettings scene, GrayscaleFilter grayscaleFilter, SepiaFilter sepiaFilter, BlurFilter blurFilter, PixelizedFilter pixelizedFilter, NightVisionFilter nightVisionFilter)
+        public Form1(SceneObjects state, SceneSettings scene, GrayscaleFilter grayscaleFilter, SepiaFilter sepiaFilter, BlurFilter blurFilter, PixelizedFilter pixelizedFilter, NightVisionFilter nightVisionFilter, SharpnessFilter sharpnessFilter)
         {
             InitializeComponent();
             this.sceneState = state;
@@ -34,6 +31,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             this.blurFilter = blurFilter;
             this.pixelizedFilter = pixelizedFilter;
             this.nightVisionFilter = nightVisionFilter;
+            this.sharpnessFilter = sharpnessFilter;
             InitializeUI();
         }
 
@@ -99,7 +97,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             transformBtn.Click += (s, e) => OpenForm(ref transformForm, () => new ObjectTransformForm(sceneState));
             skyboxBtn.Click += (s, e) => OpenForm(ref skyboxForm, () => new SceneSettingsForm(scene, sceneState));
             cameraBtn.Click += (s, e) => OpenForm(ref cameraForm, () => new CameraControlForm(scene.camera, scene.camera.SelfDynamic, sceneState));
-            filterBtn.Click += (s, e) => OpenForm(ref filterForm, () => new FilterControlForm(grayscaleFilter, sepiaFilter, blurFilter, pixelizedFilter, nightVisionFilter));
+            filterBtn.Click += (s, e) => OpenForm(ref filterForm, () => new FilterControlForm(grayscaleFilter, sepiaFilter, blurFilter, pixelizedFilter, nightVisionFilter, sharpnessFilter));
 
             // Initialize all control forms
             animationForm = new AnimationControlForm(sceneState);
@@ -108,7 +106,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             transformForm = new ObjectTransformForm(sceneState);
             skyboxForm = new SceneSettingsForm(scene, sceneState);
             cameraForm = new CameraControlForm(scene.camera, scene.camera.SelfDynamic, sceneState);
-            filterForm = new FilterControlForm(grayscaleFilter, sepiaFilter, blurFilter, pixelizedFilter, nightVisionFilter);
+            filterForm = new FilterControlForm(grayscaleFilter, sepiaFilter, blurFilter, pixelizedFilter, nightVisionFilter, sharpnessFilter);
         }
 
         private void OpenForm<T>(ref T form, Func<T> createForm) where T : Form

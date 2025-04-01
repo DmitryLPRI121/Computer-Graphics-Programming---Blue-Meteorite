@@ -1,8 +1,3 @@
-using OpenTK.Mathematics;
-using System;
-using System.Drawing;
-using System.Windows.Forms;
-
 namespace Computer_Graphics_Programming_Blue_Meteorite
 {
     public class CameraControlForm : Form
@@ -15,8 +10,6 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         private NumericUpDown jumpRiseSpeedInput;
         private NumericUpDown gravityInput;
         private NumericUpDown collisionRadiusInput;
-        private NumericUpDown horizontalVelocityTransferInput;
-        private NumericUpDown verticalVelocityTransferInput;
 
         public CameraControlForm(Camera camera, DynamicBody cameraDynamic, SceneObjects sceneState)
         {
@@ -30,7 +23,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         private void InitializeComponent()
         {
             this.Text = "Camera Control";
-            this.ClientSize = new Size(300, 250); // Увеличим размер формы
+            this.ClientSize = new Size(300, 200);
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
@@ -59,7 +52,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             // Jump Rise Speed
             Label jumpRiseSpeedLabel = new Label
             {
-                Text = "Jump Rise Speed:",
+                Text = "Jump Speed:",
                 Location = new Point(10, 50),
                 Size = new Size(150, 20)
             };
@@ -115,54 +108,12 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                 Value = 1.0m
             };
             collisionRadiusInput.ValueChanged += (s, e) => UpdateCameraParameters();
-            
-            // Horizontal Velocity Transfer
-            Label horizontalVelocityLabel = new Label
-            {
-                Text = "Horizontal Transfer:",
-                Location = new Point(10, 140),
-                Size = new Size(150, 20)
-            };
-
-            horizontalVelocityTransferInput = new NumericUpDown
-            {
-                Location = new Point(160, 140),
-                Size = new Size(100, 20),
-                Minimum = 0m,
-                Maximum = 2m,
-                DecimalPlaces = 2,
-                Increment = 0.1m,
-                Value = 0.7m
-            };
-            horizontalVelocityTransferInput.ValueChanged += (s, e) => UpdateCameraParameters();
-            
-            // Vertical Velocity Transfer
-            Label verticalVelocityLabel = new Label
-            {
-                Text = "Vertical Transfer:",
-                Location = new Point(10, 170),
-                Size = new Size(150, 20)
-            };
-
-            verticalVelocityTransferInput = new NumericUpDown
-            {
-                Location = new Point(160, 170),
-                Size = new Size(100, 20),
-                Minimum = 0m,
-                Maximum = 2m,
-                DecimalPlaces = 2,
-                Increment = 0.1m,
-                Value = 0.5m
-            };
-            verticalVelocityTransferInput.ValueChanged += (s, e) => UpdateCameraParameters();
 
             this.Controls.AddRange(new Control[] {
                 movementSpeedLabel, movementSpeedInput,
                 jumpRiseSpeedLabel, jumpRiseSpeedInput,
                 gravityLabel, gravityInput,
-                collisionRadiusLabel, collisionRadiusInput,
-                horizontalVelocityLabel, horizontalVelocityTransferInput,
-                verticalVelocityLabel, verticalVelocityTransferInput
+                collisionRadiusLabel, collisionRadiusInput
             });
         }
 
@@ -177,13 +128,11 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             if (cameraDynamic != null)
             {
                 jumpRiseSpeedInput.Value = (decimal)cameraDynamic.JumpRiseSpeed;
-                horizontalVelocityTransferInput.Value = (decimal)cameraDynamic.HorizontalVelocityTransferFactor;
-                verticalVelocityTransferInput.Value = (decimal)cameraDynamic.VerticalVelocityTransferFactor;
             }
 
             if (sceneState != null)
             {
-                gravityInput.Value = (decimal)sceneState.GravityStrength;
+                gravityInput.Value = 35;
             }
         }
 
@@ -191,24 +140,21 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         {
             if (camera != null)
             {
-                // Скорость передвижения влияет только на горизонтальное движение
+                // Movement speed affects only horizontal movement
                 camera.MovementSpeed = (float)movementSpeedInput.Value;
-                // Радиус коллизии
+                // Collision radius
                 camera.CollisionRadius = (float)collisionRadiusInput.Value;
             }
 
             if (cameraDynamic != null)
             {
-                // Скорость взлета при прыжке
+                // Jump rise speed
                 cameraDynamic.JumpRiseSpeed = (float)jumpRiseSpeedInput.Value;
-                // Коэффициенты передачи скорости при прыжке с динамических объектов
-                cameraDynamic.HorizontalVelocityTransferFactor = (float)horizontalVelocityTransferInput.Value;
-                cameraDynamic.VerticalVelocityTransferFactor = (float)verticalVelocityTransferInput.Value;
             }
 
             if (sceneState != null)
             {
-                // Гравитация влияет на скорость падения
+                // Gravity affects falling speed
                 sceneState.GravityStrength = (float)gravityInput.Value;
             }
         }

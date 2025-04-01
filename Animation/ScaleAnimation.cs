@@ -6,7 +6,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
     {
         public string Name { get; set; }
         public SceneObject TargetObject { get; set; }
-        public Vector3 ScaleSpeed { get; set; } // Scale change per second for each axis
+        public Vector3 ScaleSpeed { get; set; } // Изменение масштаба в секунду для каждой оси
         public Vector3 MinScale { get; set; } = Vector3.One * 0.5f;
         public Vector3 MaxScale { get; set; } = Vector3.One * 2.0f;
         private bool isCompleted = false;

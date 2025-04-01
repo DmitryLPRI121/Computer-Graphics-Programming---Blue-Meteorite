@@ -6,7 +6,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
     {
         public string Name { get; set; }
         public SceneObject TargetObject { get; set; }
-        public Vector3 RotationSpeed { get; set; } // Degrees per second for each axis
+        public Vector3 RotationSpeed { get; set; } // Градусы в секунду для каждой оси
         private bool isCompleted = false;
 
         public bool IsFinished => isCompleted;
@@ -25,7 +25,6 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         {
             if (TargetObject != null && !isCompleted)
             {
-                // Apply rotation based on speed and delta time
                 TargetObject.Rotation += RotationSpeed * deltaTime;
             }
         }

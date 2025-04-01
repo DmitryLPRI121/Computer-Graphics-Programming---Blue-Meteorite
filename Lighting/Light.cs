@@ -45,9 +45,6 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             QuadraticAttenuation = 0.032f;
         }
 
-        /// <summary>
-        /// Устанавливает параметры света в основной шейдер.
-        /// </summary>
         public void SetLightUniforms(Shader shader, int index)
         {
             shader.SetVector3($"lightPos[{index}]", Position);
@@ -73,9 +70,6 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             RenderShadows(scene);
         }
 
-        /// <summary>
-        /// Пересчитывает матрицу пространства света.
-        /// </summary>
         public void RecomputeLightSpaceMatrix()
         {
             try
@@ -89,9 +83,6 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             }
         }
 
-        /// <summary>
-        /// Выполняет рендеринг теней.
-        /// </summary>
         public void RenderShadows(SceneSettings scene)
         {
             try
@@ -120,9 +111,6 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             }
         }
 
-        /// <summary>
-        /// Устанавливает параметры ближней и дальней плоскостей.
-        /// </summary>
         public void SetDepthPlanes(float near, float far)
         {
             if (near <= 0 || far <= 0 || near >= far)
@@ -134,9 +122,6 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             farPlane = far;
         }
 
-        /// <summary>
-        /// Устанавливает коэффициенты аттенюации.
-        /// </summary>
         public void SetAttenuation(float constant, float linear, float quadratic)
         {
             ConstantAttenuation = constant;

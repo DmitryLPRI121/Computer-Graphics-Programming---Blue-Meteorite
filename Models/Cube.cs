@@ -71,10 +71,10 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         private int VBO, VAO, IBO;
         private Texture texture;
 
-        public Cube(string texturePath)
+        public Cube(string texturePath, float textureRepeat = 1.0f)
         {
             InitializeBuffers();
-            texture = new Texture(texturePath);
+            texture = new Texture(texturePath, textureRepeat);
 
             GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
             GL.BindVertexArray(0);

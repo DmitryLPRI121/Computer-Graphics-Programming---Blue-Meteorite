@@ -110,7 +110,6 @@ namespace Computer_Graphics_Programming_Blue_Meteorite.Graphics
         private void InitializeQuad()
         {
             float[] quadVertices = {
-                // positions        // texture Coords
                 -1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
                 -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
                  1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
@@ -136,7 +135,6 @@ namespace Computer_Graphics_Programming_Blue_Meteorite.Graphics
         {
             this.screenTexture = screenTexture;
             
-            // Update time for animation effects
             time += 0.01f;
             
             GL.UseProgram(shaderProgram);

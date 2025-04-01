@@ -56,9 +56,11 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         private float timeOfDay = 0.5f; // Start at noon
         private bool autoUpdate = true;
         private float cycleSpeed = 60.0f; // Speed of time cycle (in seconds per full cycle)
+        private SceneObjects sceneState;
 
-        public Skybox()
+        public Skybox(SceneObjects sceneState = null)
         {
+            this.sceneState = sceneState;
             shader = new Shader("shaders/skybox.vert", "shaders/skybox.frag");
             InitializeBuffers();
         }
@@ -79,19 +81,44 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         {
             if (autoUpdate)
             {
-                // Update time of day with faster cycle
+                float oldTime = timeOfDay;
                 timeOfDay = (timeOfDay + deltaTime / cycleSpeed) % 1.0f;
+                
+                // Обновляем время в sceneState
+                if (sceneState != null)
+                {
+                    lock (sceneState)
+                    {
+                        sceneState.SkyboxTimeOfDay = timeOfDay;
+                    }
+                }
             }
         }
 
         public void SetTimeOfDay(float time)
         {
+            float oldTime = timeOfDay;
             timeOfDay = time;
+            
+            // Синхронизируем время с sceneState
+            if (sceneState != null)
+            {
+                lock (sceneState)
+                {
+                    sceneState.SkyboxTimeOfDay = timeOfDay;
+                }
+            }
         }
 
-        public void SetAutoUpdate(bool auto)
+        public void SetAutoUpdate(bool enabled)
         {
-            autoUpdate = auto;
+            bool oldValue = autoUpdate;
+            autoUpdate = enabled;
+        }
+
+        public void SetCycleSpeed(float speed)
+        {
+            cycleSpeed = speed;
         }
 
         public void Render(Matrix4 projection, Matrix4 view)
@@ -105,12 +132,18 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             shader.SetMatrix4("projection", projection);
             shader.SetMatrix4("view", view);
             shader.SetFloat("timeOfDay", timeOfDay);
+            shader.SetInt("skybox", 0);
 
             GL.DepthFunc(DepthFunction.Lequal);
             GL.BindVertexArray(vao);
             GL.DrawArrays(PrimitiveType.Triangles, 0, 36);
             GL.BindVertexArray(0);
             GL.DepthFunc(DepthFunction.Less);
+        }
+
+        public float GetTimeOfDay()
+        {
+            return timeOfDay;
         }
 
         public void Dispose()

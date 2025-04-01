@@ -2,7 +2,6 @@ using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Graphics.OpenGL4;
-using System.Diagnostics;
 using Computer_Graphics_Programming_Blue_Meteorite.Graphics;
 
 namespace Computer_Graphics_Programming_Blue_Meteorite
@@ -21,6 +20,11 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
 
         private Vector2 lastMousePosition;
         private bool firstMove = true;
+        
+        // Добавляем переменные для сохранения позиции курсора
+        private float savedYaw;
+        private float savedPitch;
+        private bool hasSavedCameraState = false;
 
         // Post-processing framebuffer
         private int postProcessFBO;
@@ -30,6 +34,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         public BlurFilter blurFilter;
         public PixelizedFilter pixelizedFilter;
         public NightVisionFilter nightVisionFilter;
+        public SharpnessFilter sharpnessFilter;
 
         public SceneSettings(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings, SceneObjects ss)
             : base(gameWindowSettings, nativeWindowSettings)
@@ -38,12 +43,12 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             camera = new Camera(new Vector3(0.0f, 2.0f, 3.0f), Vector3.UnitY);
 
             DynamicBody cameraDynamic = new DynamicBody(camera, Vector3.UnitY);
-            cameraDynamic.floor_y = 3;
+            cameraDynamic.floor_y = 4;
             camera.SelfDynamic = cameraDynamic;
 
             physicalStates.Add(cameraDynamic);
             lights = new List<Light>();
-            globalLight = new GlobalLight();
+            globalLight = new GlobalLight(sceneState);
             
             // Инициализация настроек света
             if (sceneState.LightSettings != null)
@@ -73,6 +78,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             blurFilter = new BlurFilter();
             pixelizedFilter = new PixelizedFilter();
             nightVisionFilter = new NightVisionFilter();
+            sharpnessFilter = new SharpnessFilter();
         }
 
         protected override void OnLoad()
@@ -88,7 +94,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             shader = new Shader("shaders/base.vert", "shaders/base.frag");
 
             // Инициализируем траву
-            GrassFractal grass = new GrassFractal("textures/grass.jpg", 3, 0.8f, 0.08f, 0.3f, 1000);
+            GrassFractal grass = new GrassFractal("textures/grass2.jpg", 2, 0.8f, 0.08f, 0.3f, 10000, 100.0f);
             grass.Name = "Grass";
             grass.Position = new Vector3(0, 0, 0);
             sceneObjects.Add(grass);
@@ -102,7 +108,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                 }
 
                 // Инициализируем skybox
-                skybox = new Skybox();
+                skybox = new Skybox(sceneState);
                 skybox.SetTimeOfDay(sceneState.SkyboxTimeOfDay);
                 skybox.SetAutoUpdate(sceneState.SkyboxAutoUpdate);
 
@@ -154,16 +160,19 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             switch (obj.Type)
             {
                 case ObjectTypes.Cube:
-                    current = new Cube(obj.Texture);
+                    current = new Cube(obj.Texture, obj.TextureRepeat);
                     break;
                 case ObjectTypes.Sphere:
-                    current = new Sphere(obj.Texture);
+                    current = new Sphere(obj.Texture, 32, 16, obj.TextureRepeat);
                     break;
                 case ObjectTypes.Plane:
-                    current = new Plane(obj.Texture);
+                    current = new Plane(obj.Texture, obj.TextureRepeat);
                     break;
                 case ObjectTypes.Prism:
-                    current = new Prism(obj.Texture);
+                    current = new Prism(obj.Texture, obj.TextureRepeat);
+                    break;
+                case ObjectTypes.DiamondFractal:
+                    current = new DiamondFractal(obj.Texture, 3, 1.0f, 0.3f, 1, null, obj.TextureRepeat);
                     break;
                 default:
                     throw new Exception($"Unknown object type: {obj.Type}");
@@ -174,6 +183,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             current.Rotation = obj.Rotation;
             current.Scale = obj.Scale;
             current.Color = new Vector3(1.0f, 1.0f, 1.0f);
+            current.TextureRepeat = obj.TextureRepeat;
 
             if (obj.IsDynamic)
             {
@@ -217,6 +227,13 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
 
             if (KeyboardState.IsKeyDown(OpenTK.Windowing.GraphicsLibraryFramework.Keys.Escape))
             {
+                // Если курсор захвачен, сохраняем состояние камеры перед освобождением
+                if (CursorState == CursorState.Grabbed && camera.SelfDynamic != null)
+                {
+                    savedYaw = ((DynamicBody)camera.SelfDynamic).Yaw;
+                    savedPitch = ((DynamicBody)camera.SelfDynamic).Pitch;
+                    hasSavedCameraState = true;
+                }
                 CursorState = CursorState.Normal;
             }
 
@@ -309,6 +326,11 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                         closestPoint = cube.Position + clampedPoint;
                         objRadius = 0; // Используем фактическую точку на поверхности
                         needCheck = true;
+                    }
+                    else if (obj is Prism)
+                    {
+                        // Отключаем коллизии камеры с призмами
+                        continue;
                     }
                     else if (obj is Prism prism)
                     {
@@ -533,12 +555,15 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                     if (sceneState.SkyboxAutoUpdate)
                     {
                         skybox.Update((float)e.Time);
+                        // Синхронизируем время с sceneState
+                        sceneState.SkyboxTimeOfDay = skybox.GetTimeOfDay();
                     }
                     else
                     {
                         skybox.SetTimeOfDay(sceneState.SkyboxTimeOfDay);
                     }
                 }
+                // Обновляем глобальное освещение после skybox
                 globalLight.Update((float)e.Time);
             }
         }
@@ -569,6 +594,28 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                 CursorState != CursorState.Grabbed)
             {
                 CursorState = CursorState.Grabbed;
+                
+                // Восстанавливаем сохранённое положение камеры при повторном захвате
+                if (hasSavedCameraState && camera.SelfDynamic != null)
+                {
+                    ((DynamicBody)camera.SelfDynamic).RestoreRotation(savedYaw, savedPitch);
+                    firstMove = true;
+                }
+            }
+            // Обработка нажатия на колесико мыши для переключения полноэкранного режима
+            else if ((e.Button == OpenTK.Windowing.GraphicsLibraryFramework.MouseButton.Button3 ||
+                      e.Button == OpenTK.Windowing.GraphicsLibraryFramework.MouseButton.Middle) &&
+                     CursorState == CursorState.Grabbed)
+            {
+                // Переключаем режим окна между обычным и полноэкранным
+                if (WindowState == WindowState.Normal)
+                {
+                    WindowState = WindowState.Fullscreen;
+                }
+                else
+                {
+                    WindowState = WindowState.Normal;
+                }
             }
             base.OnMouseDown(e);
         }
@@ -581,6 +628,10 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             GL.Enable(EnableCap.Blend);
             GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 
+            // Создаем матрицы проекции и вида
+            Matrix4 projection = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(camera.GetZoom()), Size.X / (float)Size.Y, 0.1f, 1000.0f);
+            Matrix4 view = camera.GetViewMatrix();
+
             // Синхронизируем источники света перед рендерингом
             SyncWithSceneState();
 
@@ -589,11 +640,6 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             {
                 light.ReCompute(this);
             }
-
-            // Render skybox first
-            Matrix4 projection = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(camera.GetZoom()), Size.X / (float)Size.Y, 0.1f, 1000.0f);
-            Matrix4 view = camera.GetViewMatrix();
-            skybox.Render(projection, view);
 
             // Привязываем фреймбуфер пост-обработки
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, postProcessFBO);
@@ -646,6 +692,12 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                 }
             }
 
+            // Рендерим skybox последним
+            if (skybox != null)
+            {
+                skybox.Render(projection, view);
+            }
+
             // Отключаем блендинг после рендеринга
             GL.Disable(EnableCap.Blend);
 
@@ -674,6 +726,10 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             else if (grayscaleFilter.IsEnabled)
             {
                 grayscaleFilter.Apply(postProcessTexture);
+            }
+            else if (sharpnessFilter.IsEnabled)
+            {
+                sharpnessFilter.Apply(postProcessTexture, new Vector2(Size.X, Size.Y));
             }
             else
             {
@@ -833,6 +889,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             blurFilter.Cleanup();
             pixelizedFilter.Cleanup();
             nightVisionFilter.Cleanup();
+            sharpnessFilter.Cleanup();
 
             shader.Dispose();
             skybox.Dispose();

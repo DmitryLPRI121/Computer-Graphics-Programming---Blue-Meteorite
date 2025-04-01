@@ -7,6 +7,8 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         private SceneObjects sceneState;
         private SceneObject selectedObject;
         private bool isInitializing = false;
+        private CheckedListBox objectsBox;
+        private List<SceneObject> selectedObjects = new List<SceneObject>();
 
         public ObjectTransformForm(SceneObjects state)
         {
@@ -23,15 +25,16 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             // Object selection
             Label objectLabel = new Label
             {
-                Text = "Select Object:",
+                Text = "Select Objects:",
                 Location = new System.Drawing.Point(10, 10),
                 AutoSize = true
             };
 
-            objectsBox = new ListBox
+            objectsBox = new CheckedListBox
             {
                 Location = new System.Drawing.Point(10, 30),
-                Size = new System.Drawing.Size(200, 100)
+                Size = new System.Drawing.Size(200, 100),
+                CheckOnClick = true
             };
 
             // Position controls
@@ -167,7 +170,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             });
 
             // Add event handlers
-            objectsBox.SelectedIndexChanged += objectsBox_SelectedIndexChanged;
+            objectsBox.ItemCheck += objectsBox_ItemCheck;
             objectXCord.ValueChanged += objectsCord_Changed;
             objectYCord.ValueChanged += objectsCord_Changed;
             objectZCord.ValueChanged += objectsCord_Changed;
@@ -186,20 +189,57 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
             }
         }
 
-        private void objectsBox_SelectedIndexChanged(object sender, EventArgs e)
+        private void objectsBox_ItemCheck(object sender, ItemCheckEventArgs e)
         {
-            if (objectsBox.SelectedItem != null)
+            string objectName = objectsBox.Items[e.Index].ToString();
+            SceneObject obj = sceneState.Objects.Find(o => o.Name.Equals(objectName));
+
+            if (obj != null)
             {
-                selectedObject = sceneState.Objects.Find(o => o.Name.Equals(objectsBox.SelectedItem.ToString()));
-                if (selectedObject != null)
+                if (e.NewValue == CheckState.Checked)
                 {
-                    isInitializing = true;
-                    objectXCord.Value = (decimal)selectedObject.Position.X;
-                    objectYCord.Value = (decimal)selectedObject.Position.Y;
-                    objectZCord.Value = (decimal)selectedObject.Position.Z;
-                    isInitializing = false;
+                    selectedObjects.Add(obj);
+                    if (selectedObject == null)
+                    {
+                        selectedObject = obj;
+                        UpdatePositionControls(obj);
+                    }
+                }
+                else
+                {
+                    selectedObjects.Remove(obj);
+                    if (selectedObject == obj)
+                    {
+                        selectedObject = selectedObjects.Count > 0 ? selectedObjects[0] : null;
+                        if (selectedObject != null)
+                        {
+                            UpdatePositionControls(selectedObject);
+                        }
+                        else
+                        {
+                            ResetPositionControls();
+                        }
+                    }
                 }
             }
+        }
+
+        private void UpdatePositionControls(SceneObject obj)
+        {
+            isInitializing = true;
+            objectXCord.Value = (decimal)obj.Position.X;
+            objectYCord.Value = (decimal)obj.Position.Y;
+            objectZCord.Value = (decimal)obj.Position.Z;
+            isInitializing = false;
+        }
+
+        private void ResetPositionControls()
+        {
+            isInitializing = true;
+            objectXCord.Value = 0;
+            objectYCord.Value = 0;
+            objectZCord.Value = 0;
+            isInitializing = false;
         }
 
         private void objectsCord_Changed(object sender, EventArgs e)
@@ -234,25 +274,25 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         {
             lock (sceneState)
             {
-                if (selectedObject != null)
+                foreach (var obj in selectedObjects)
                 {
                     float x = (float)objectXCord.Value;
                     float y = (float)objectYCord.Value;
                     float z = (float)objectZCord.Value;
 
                     // Calculate the displacement vector
-                    Vector3 displacement = new Vector3(x, y, z) - selectedObject.Position;
+                    Vector3 displacement = new Vector3(x, y, z) - obj.Position;
                     
                     // For dynamic objects, we need to set the force application flag
-                    if (selectedObject.IsDynamic)
+                    if (obj.IsDynamic)
                     {
                         // Calculate a strong force to move the object to the target position
-                        selectedObject.AppliedForce = displacement * 100.0f;
-                        selectedObject.isForceApplied = true;
+                        obj.AppliedForce = displacement * 100.0f;
+                        obj.isForceApplied = true;
                     }
                     
                     // Always update the position directly in the scene state
-                    selectedObject.Position = new Vector3(x, y, z);
+                    obj.Position = new Vector3(x, y, z);
                 }
             }
         }
@@ -261,7 +301,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         {
             lock (sceneState)
             {
-                if (selectedObject != null)
+                foreach (var obj in selectedObjects)
                 {
                     float x = (float)objectTranslateXCord.Value;
                     float y = (float)objectTranslateYCord.Value;
@@ -270,26 +310,25 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                     Vector3 translation = new Vector3(x, y, z);
                     
                     // For dynamic objects, set the force directly to ensure motion
-                    if (selectedObject.IsDynamic)
+                    if (obj.IsDynamic)
                     {
-                        selectedObject.AppliedForce = translation * 100.0f;
-                        selectedObject.isForceApplied = true;
+                        obj.AppliedForce = translation * 100.0f;
+                        obj.isForceApplied = true;
                         
                         // Also apply the translation directly to the position for immediate feedback
-                        selectedObject.Position += translation;
+                        obj.Position += translation;
                     }
                     else
                     {
                         // For static objects, simply translate
-                        selectedObject.ApplyTranslation(translation);
+                        obj.ApplyTranslation(translation);
                     }
+                }
 
-                    // Update the position display
-                    isInitializing = true;
-                    objectXCord.Value = (decimal)selectedObject.Position.X;
-                    objectYCord.Value = (decimal)selectedObject.Position.Y;
-                    objectZCord.Value = (decimal)selectedObject.Position.Z;
-                    isInitializing = false;
+                // Update the position display for the selected object
+                if (selectedObject != null)
+                {
+                    UpdatePositionControls(selectedObject);
                 }
             }
         }
@@ -298,13 +337,13 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         {
             lock (sceneState)
             {
-                if (selectedObject != null)
+                foreach (var obj in selectedObjects)
                 {
                     float x = (float)objectRotateXCord.Value;
                     float y = (float)objectRotateYCord.Value;
                     float z = (float)objectRotateZCord.Value;
 
-                    selectedObject.ApplyRotation(new Vector3(x, y, z));
+                    obj.ApplyRotation(new Vector3(x, y, z));
                 }
             }
         }
@@ -313,18 +352,17 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         {
             lock (sceneState)
             {
-                if (selectedObject != null)
+                foreach (var obj in selectedObjects)
                 {
                     float x = (float)objectScaleXCord.Value;
                     float y = (float)objectScaleYCord.Value;
                     float z = (float)objectScaleZCord.Value;
 
-                    selectedObject.ApplyScale(new Vector3(x, y, z));
+                    obj.ApplyScale(new Vector3(x, y, z));
                 }
             }
         }
 
-        private ListBox objectsBox;
         private NumericUpDown objectXCord;
         private NumericUpDown objectYCord;
         private NumericUpDown objectZCord;

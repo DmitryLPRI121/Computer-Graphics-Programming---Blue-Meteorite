@@ -4,11 +4,11 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
 {
     public class GlobalLight
     {
-        private float timeOfDay = 0.5f; // Start at noon
         private bool autoUpdate = true;
-        private float cycleSpeed = 60.0f; // Speed of time cycle (in seconds per full cycle)
+        private float cycleSpeed = 10.0f; // Синхронизируем скорость с Skybox
+        private SceneObjects sceneState;
 
-        // Light properties that change with time of day
+        // Свойства света, которые меняются в зависимости от времени суток
         private Vector3 ambientColor = new Vector3(0.2f, 0.2f, 0.3f);
         private Vector3 diffuseColor = new Vector3(1.0f, 1.0f, 0.9f);
         private Vector3 specularColor = new Vector3(1.0f, 1.0f, 0.8f);
@@ -16,42 +16,49 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         private float diffuseIntensity = 1.0f;
         private float specularIntensity = 0.5f;
 
-        // Sun position and direction
+        // Позиция и направление солнца
         private Vector3 sunPosition;
         private Vector3 sunDirection;
 
+        public GlobalLight(SceneObjects sceneState = null)
+        {
+            this.sceneState = sceneState;
+        }
+
         public void Update(float deltaTime)
         {
-            if (autoUpdate)
+            if (autoUpdate && sceneState != null)
             {
-                timeOfDay = (timeOfDay + deltaTime / cycleSpeed) % 1.0f;
-                UpdateLightProperties();
+                lock (sceneState)
+                {
+                    UpdateLightProperties(sceneState.SkyboxTimeOfDay);
+                }
             }
         }
 
-        private void UpdateLightProperties()
+        private void UpdateLightProperties(float timeOfDay)
         {
-            // Calculate sun position based on time of day
-            // Using spherical coordinates for more realistic sun movement
+            // Вычисляем позицию солнца на основе времени суток
+            // Используем сферические координаты для более реалистичного движения солнца
             float sunAngle = timeOfDay * 2.0f * MathF.PI;
             
-            // Calculate sun's position in 3D space
-            // The sun moves in a circle around the scene, with some tilt to simulate seasons
-            float tiltAngle = MathF.PI / 6.0f; // 30 degrees tilt
-            float radius = 100.0f; // Distance of sun from scene center
+            // Вычисляем позицию солнца в 3D пространстве
+            // Солнце движется по кругу вокруг сцены с некоторым наклоном для имитации сезонов
+            float tiltAngle = MathF.PI / 6.0f; // Наклон 30 градусов
+            float radius = 100.0f; // Расстояние солнца от центра сцены
             
-            // Calculate sun position using spherical coordinates
+            // Вычисляем позицию солнца с помощью сферических координат
             sunPosition = new Vector3(
                 radius * MathF.Cos(sunAngle) * MathF.Cos(tiltAngle),
                 radius * MathF.Sin(tiltAngle),
                 radius * MathF.Sin(sunAngle) * MathF.Cos(tiltAngle)
             );
 
-            // Calculate sun direction (from sun to scene center)
+            // Вычисляем направление солнца (от солнца к центру сцены)
             sunDirection = Vector3.Normalize(-sunPosition);
 
-            // Update light properties based on time of day
-            if (timeOfDay < 0.2f) // Night to Dawn
+            // Обновляем свойства света в зависимости от времени суток
+            if (timeOfDay < 0.2f) // Ночь до рассвета
             {
                 float t = timeOfDay * 5.0f;
                 ambientColor = Vector3.Lerp(new Vector3(0.1f, 0.1f, 0.2f), new Vector3(0.3f, 0.4f, 0.7f), t);
@@ -59,7 +66,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                 ambientIntensity = MathHelper.Lerp(0.1f, 0.3f, t);
                 diffuseIntensity = MathHelper.Lerp(0.1f, 0.8f, t);
             }
-            else if (timeOfDay < 0.4f) // Dawn to Day
+            else if (timeOfDay < 0.4f) // Рассвет до дня
             {
                 float t = (timeOfDay - 0.2f) * 5.0f;
                 ambientColor = Vector3.Lerp(new Vector3(0.3f, 0.4f, 0.7f), new Vector3(0.6f, 0.8f, 1.0f), t);
@@ -67,7 +74,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                 ambientIntensity = MathHelper.Lerp(0.3f, 0.5f, t);
                 diffuseIntensity = MathHelper.Lerp(0.8f, 1.0f, t);
             }
-            else if (timeOfDay < 0.6f) // Day to Dusk
+            else if (timeOfDay < 0.6f) // День до сумерек
             {
                 float t = (timeOfDay - 0.4f) * 5.0f;
                 ambientColor = Vector3.Lerp(new Vector3(0.6f, 0.8f, 1.0f), new Vector3(0.8f, 0.6f, 0.7f), t);
@@ -75,7 +82,7 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                 ambientIntensity = MathHelper.Lerp(0.5f, 0.4f, t);
                 diffuseIntensity = MathHelper.Lerp(1.0f, 0.7f, t);
             }
-            else // Dusk to Night
+            else // Сумерки до ночи
             {
                 float t = (timeOfDay - 0.6f) * 2.5f;
                 ambientColor = Vector3.Lerp(new Vector3(0.8f, 0.6f, 0.7f), new Vector3(0.1f, 0.1f, 0.2f), t);
@@ -84,20 +91,30 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
                 diffuseIntensity = MathHelper.Lerp(0.7f, 0.1f, t);
             }
 
-            // Update specular intensity based on sun position
+            // Обновляем интенсивность отраженного света на основе позиции солнца
             specularIntensity = MathHelper.Clamp(sunDirection.Y * 0.5f + 0.5f, 0.1f, 0.8f);
         }
 
         public void SetTimeOfDay(float time)
         {
-            timeOfDay = time;
-            autoUpdate = false;
-            UpdateLightProperties();
+            if (sceneState != null)
+            {
+                lock (sceneState)
+                {
+                    sceneState.SkyboxTimeOfDay = time;
+                    UpdateLightProperties(time);
+                }
+            }
         }
 
         public void SetAutoUpdate(bool auto)
         {
             autoUpdate = auto;
+        }
+
+        public void SetCycleSpeed(float speed)
+        {
+            cycleSpeed = speed;
         }
 
         public void SetLightUniforms(Shader shader)

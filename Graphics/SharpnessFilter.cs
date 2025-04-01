@@ -3,12 +3,13 @@ using OpenTK.Mathematics;
 
 namespace Computer_Graphics_Programming_Blue_Meteorite.Graphics
 {
-    public class SepiaFilter
+    public class SharpnessFilter
     {
         private bool isEnabled;
         private int shaderProgram;
         private int quadVAO, quadVBO;
         private int screenTexture;
+        private float sharpnessStrength = 1.0f;
 
         public bool IsEnabled
         {
@@ -16,7 +17,13 @@ namespace Computer_Graphics_Programming_Blue_Meteorite.Graphics
             set => isEnabled = value;
         }
 
-        public SepiaFilter()
+        public float SharpnessStrength
+        {
+            get => sharpnessStrength;
+            set => sharpnessStrength = value;
+        }
+
+        public SharpnessFilter()
         {
             InitializeShader();
             InitializeQuad();
@@ -40,15 +47,25 @@ namespace Computer_Graphics_Programming_Blue_Meteorite.Graphics
                 out vec4 FragColor;
                 in vec2 TexCoords;
                 uniform sampler2D screenTexture;
+                uniform float sharpnessStrength;
+                uniform vec2 screenSize;
+
                 void main()
                 {
+                    vec2 texelSize = 1.0 / screenSize;
+                    
+                    // Sharpening kernel
                     vec4 color = texture(screenTexture, TexCoords);
-                    vec3 sepiaColor = vec3(
-                        dot(color.rgb, vec3(0.393, 0.769, 0.189)),
-                        dot(color.rgb, vec3(0.349, 0.686, 0.168)),
-                        dot(color.rgb, vec3(0.272, 0.534, 0.131))
-                    );
-                    FragColor = vec4(sepiaColor, color.a);
+                    vec4 left = texture(screenTexture, TexCoords - vec2(texelSize.x, 0.0));
+                    vec4 right = texture(screenTexture, TexCoords + vec2(texelSize.x, 0.0));
+                    vec4 top = texture(screenTexture, TexCoords + vec2(0.0, texelSize.y));
+                    vec4 bottom = texture(screenTexture, TexCoords - vec2(0.0, texelSize.y));
+                    
+                    // Apply sharpening
+                    vec4 sharpened = color * (1.0 + 4.0 * sharpnessStrength) - 
+                                   (left + right + top + bottom) * sharpnessStrength;
+                    
+                    FragColor = sharpened;
                 }";
 
             int vertexShader = GL.CreateShader(ShaderType.VertexShader);
@@ -92,13 +109,19 @@ namespace Computer_Graphics_Programming_Blue_Meteorite.Graphics
             GL.VertexAttribPointer(1, 2, VertexAttribPointerType.Float, false, 5 * sizeof(float), 3 * sizeof(float));
         }
 
-        public void Apply(int screenTexture)
+        public void Apply(int screenTexture, Vector2 screenSize)
         {
             this.screenTexture = screenTexture;
             GL.UseProgram(shaderProgram);
 
             GL.ActiveTexture(TextureUnit.Texture0);
             GL.BindTexture(TextureTarget.Texture2D, screenTexture);
+
+            int sharpnessStrengthLoc = GL.GetUniformLocation(shaderProgram, "sharpnessStrength");
+            int screenSizeLoc = GL.GetUniformLocation(shaderProgram, "screenSize");
+
+            GL.Uniform1(sharpnessStrengthLoc, sharpnessStrength);
+            GL.Uniform2(screenSizeLoc, screenSize);
 
             GL.BindVertexArray(quadVAO);
             GL.DrawArrays(PrimitiveType.TriangleStrip, 0, 4);

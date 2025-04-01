@@ -14,14 +14,14 @@ namespace Computer_Graphics_Programming_Blue_Meteorite
         private int segments;
         private int rings;
 
-        public Sphere(string texturePath, int segments = 32, int rings = 16)
+        public Sphere(string texturePath, int segments = 32, int rings = 16, float textureRepeat = 1.0f)
         {
             this.segments = segments;
             this.rings = rings;
 
             GenerateSphereData();
             InitializeBuffers();
-            texture = new Texture(texturePath);
+            texture = new Texture(texturePath, textureRepeat);
 
             GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
             GL.BindVertexArray(0);

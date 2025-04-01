@@ -77,7 +77,6 @@ namespace Computer_Graphics_Programming_Blue_Meteorite.Graphics
         private void InitializeQuad()
         {
             float[] quadVertices = {
-                // positions        // texture Coords
                 -1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
                 -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
                  1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
@@ -107,7 +106,6 @@ namespace Computer_Graphics_Programming_Blue_Meteorite.Graphics
             GL.ActiveTexture(TextureUnit.Texture0);
             GL.BindTexture(TextureTarget.Texture2D, screenTexture);
 
-            // Set uniforms
             int pixelSizeLoc = GL.GetUniformLocation(shaderProgram, "pixelSize");
             int screenSizeLoc = GL.GetUniformLocation(shaderProgram, "screenSize");
 
